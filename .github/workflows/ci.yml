@@ -71,13 +71,10 @@ jobs:
         if: steps.examples.outputs.available == 'true'
         shell: bash
         run: |
+          image=ghcr.io/esphome/esphome:stable
           while IFS= read -r -d '' config; do
             echo "::group::Validating ${config}"
-            docker run --rm \\
-              -v "${GITHUB_WORKSPACE}:/config" \\
-              -w /config \\
-              ghcr.io/esphome/esphome:stable \\
-              config "${config}"
+            docker run --rm -v "${GITHUB_WORKSPACE}:/config" -w /config "$image" config "${config}"
             echo "::endgroup::"
           done < <(find examples -type f -print0 | grep -zE '\.ya?ml$' | sort -z)
 
@@ -96,13 +93,10 @@ jobs:
       - name: Compile ESPHome examples
         shell: bash
         run: |
+          image=ghcr.io/esphome/esphome:stable
           while IFS= read -r -d '' config; do
             echo "::group::Compiling ${config}"
-            docker run --rm \\
-              -v "${GITHUB_WORKSPACE}:/config" \\
-              -w /config \\
-              ghcr.io/esphome/esphome:stable \\
-              compile "${config}"
+            docker run --rm -v "${GITHUB_WORKSPACE}:/config" -w /config "$image" compile "${config}"
             echo "::endgroup::"
           done < <(find examples -type f -print0 | grep -zE '\.ya?ml$' | sort -z)
 
