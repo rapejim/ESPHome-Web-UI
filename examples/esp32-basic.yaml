@@ -1,0 +1,93 @@
+esphome:
+  name: esphome-web-ui-poc
+  friendly_name: ESPHome Web UI PoC
+  comment: Minimal proof of concept for a fully local custom web interface
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+wifi:
+  ssid: "REPLACE_WITH_WIFI_SSID"
+  password: "REPLACE_WITH_WIFI_PASSWORD"
+
+web_server:
+  port: 80
+  version: 2
+  css_url: ""
+  css_include: "../web/poc.css"
+  js_url: ""
+  js_include: "../web/poc.js"
+  auth:
+    type: digest
+    username: admin
+    password: "change-me-before-deploy"
+
+sensor:
+  - platform: template
+    name: "Temperatura demo"
+    id: demo_temperature
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      return 22.5 + (float)(millis() % 10000) / 10000.0;
+
+  - platform: template
+    name: "Humedad demo"
+    id: demo_humidity
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 5s
+    lambda: |-
+      return 48.0 + (float)(millis() % 10000) / 1000.0;
+
+switch:
+  - platform: template
+    name: "Interruptor demo"
+    id: demo_switch
+    optimistic: true
+    turn_on_action:
+      - logger.log: "Demo switch turned on"
+    turn_off_action:
+      - logger.log: "Demo switch turned off"
+
+output:
+  - platform: template
+    id: demo_red
+    type: float
+    write_action:
+      - logger.log:
+          format: "RGB red: %.2f"
+          args: ["state"]
+
+  - platform: template
+    id: demo_green
+    type: float
+    write_action:
+      - logger.log:
+          format: "RGB green: %.2f"
+          args: ["state"]
+
+  - platform: template
+    id: demo_blue
+    type: float
+    write_action:
+      - logger.log:
+          format: "RGB blue: %.2f"
+          args: ["state"]
+
+light:
+  - platform: rgb
+    name: "Luz RGB demo"
+    id: demo_rgb_light
+    red: demo_red
+    green: demo_green
+    blue: demo_blue
