@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - "feature/**"
+      - "fix/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-quality:
+    name: Repository quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install yamllint
+        run: python -m pip install --disable-pip-version-check yamllint
+
+      - name: Lint YAML files
+        shell: bash
+        run: |
+          mapfile -t yaml_files < <(git ls-files '*.yaml' '*.yml')
+          if (( ${#yaml_files[@]} == 0 )); then
+            echo "No YAML files found; skipping YAML lint."
+          else
+            yamllint --strict "${yaml_files[@]}"
+          fi
+
+  esphome-validation:
+    name: ESPHome configuration validation
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('examples/**/*.yaml', 'examples/**/*.yml') != '' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Pull ESPHome image
+        run: docker pull ghcr.io/esphome/esphome:stable
+
+      - name: Validate ESPHome examples
+        shell: bash
+        run: |
+          while IFS= read -r -d '' config; do
+            echo "::group::Validating ${config}"
+            docker run --rm \
+              -v "${GITHUB_WORKSPACE}:/config" \
+              -w /config \
+              ghcr.io/esphome/esphome:stable \
+              config "${config}"
+            echo "::endgroup::"
+          done < <(find examples -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | sort -z)
+
+  esphome-compilation:
+    name: ESPHome firmware compilation
+    runs-on: ubuntu-latest
+    needs: esphome-validation
+    if: ${{ hashFiles('examples/**/*.yaml', 'examples/**/*.yml') != '' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Pull ESPHome image
+        run: docker pull ghcr.io/esphome/esphome:stable
+
+      - name: Compile ESPHome examples
+        shell: bash
+        run: |
+          while IFS= read -r -d '' config; do
+            echo "::group::Compiling ${config}"
+            docker run --rm \
+              -v "${GITHUB_WORKSPACE}:/config" \
+              -w /config \
+              ghcr.io/esphome/esphome:stable \
+              compile "${config}"
+            echo "::endgroup::"
+          done < <(find examples -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | sort -z)
+
+  frontend-syntax:
+    name: Frontend JavaScript syntax
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('web/**/*.js') != '' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do
+            echo "Checking ${file}"
+            node --check "${file}"
+          done < <(find web -type f -name '*.js' -print0 | sort -z)
