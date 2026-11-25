@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - "feature/**"
+      - "fix/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-quality:
+    name: Repository quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install yamllint
+        run: python -m pip install --disable-pip-version-check yamllint
+
+      - name: Lint YAML files
+        shell: bash
+        run: |
+          mapfile -t yaml_files < <(git ls-files '*.yaml' '*.yml')
+          if (( ${#yaml_files[@]} == 0 )); then
+            echo "No YAML files found; skipping YAML lint."
+          else
+            yamllint --strict -c .yamllint "${yaml_files[@]}"
+          fi
+
+  esphome-validation:
+    name: ESPHome configuration validation
+    runs-on: ubuntu-latest
+    outputs:
+      has_examples: ${{ steps.examples.outputs.available }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Detect ESPHome examples
+        id: examples
+        shell: bash
+        run: |
+          if find examples -type f -print0 2>/dev/null | grep -zEq '\.ya?ml$'; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No ESPHome examples yet; validation is deferred."
+          fi
+
+      - name: Pull ESPHome image
+        if: steps.examples.outputs.available == 'true'
+        run: docker pull ghcr.io/esphome/esphome:stable
+
+      - name: Validate ESPHome examples
+        if: steps.examples.outputs.available == 'true'
+        shell: bash
+        run: |
+          image=ghcr.io/esphome/esphome:stable
+          while IFS= read -r -d '' config; do
+            echo "::group::Validating ${config}"
+            docker run --rm -v "${GITHUB_WORKSPACE}:/config" -w /config "$image" config "${config}"
+            echo "::endgroup::"
+          done < <(find examples -type f -print0 | grep -zE '\.ya?ml$' | sort -z)
+
+  esphome-compilation:
+    name: ESPHome firmware compilation
+    runs-on: ubuntu-latest
+    needs: esphome-validation
+    if: needs.esphome-validation.outputs.has_examples == 'true'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Pull ESPHome image
+        run: docker pull ghcr.io/esphome/esphome:stable
+
+      - name: Compile ESPHome examples
+        shell: bash
+        run: |
+          image=ghcr.io/esphome/esphome:stable
+          while IFS= read -r -d '' config; do
+            echo "::group::Compiling ${config}"
+            docker run --rm -v "${GITHUB_WORKSPACE}:/config" -w /config "$image" compile "${config}"
+            echo "::endgroup::"
+          done < <(find examples -type f -print0 | grep -zE '\.ya?ml$' | sort -z)
+
+  frontend-syntax:
+    name: Frontend JavaScript syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: ${{ hashFiles('web/**/*.js') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check JavaScript syntax
+        if: ${{ hashFiles('web/**/*.js') != '' }}
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do
+            echo "Checking ${file}"
+            node --check "${file}"
+          done < <(find web -type f -name '*.js' -print0 | sort -z)
