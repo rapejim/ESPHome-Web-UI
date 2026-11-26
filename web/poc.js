@@ -154,8 +154,18 @@ class ESPHomeWebUI extends HTMLElement {
 
   _connectEvents() {
     this._events = new EventSource("/events");
+    this._lastPingAt = Date.now();
+
+    // ESPHome sends a keepalive ping every 10 seconds. Allow two missed
+    // heartbeats plus a small margin before declaring communication lost.
+    this._heartbeatTimer = window.setInterval(() => {
+      if (Date.now() - this._lastPingAt > 25000) {
+        this._setConnection(false, "Sin comunicación");
+      }
+    }, 5000);
 
     this._events.addEventListener("open", () => {
+      this._lastPingAt = Date.now();
       this._setConnection(true);
     });
 
@@ -172,11 +182,12 @@ class ESPHomeWebUI extends HTMLElement {
     });
 
     this._events.addEventListener("ping", () => {
+      this._lastPingAt = Date.now();
       this._setConnection(true);
     });
 
     this._events.addEventListener("error", () => {
-      this._setConnection(false);
+      this._setConnection(false, "Reconectando…");
     });
   }
 
@@ -265,10 +276,10 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
-  _setConnection(connected) {
+  _setConnection(connected, label = connected ? "Conectado" : "Desconectado") {
     this._status.classList.toggle("online", connected);
     this._status.classList.toggle("offline", !connected);
-    this._status.lastElementChild.textContent = connected ? "Conectado" : "Reconectando…";
+    this._status.lastElementChild.textContent = label;
   }
 
   _showFeedback(message) {
