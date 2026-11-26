@@ -24,8 +24,9 @@ The proof of concept has been validated on ESP32-C6 Mini hardware. Readings, con
 - Phase 4: reusable frontend architecture and independent SSE/REST client.
 - Phase 5: normalized entity registry.
 - Phase 6: generic sensor and binary sensor components, with a visible UI version.
-- Phase 7 (in progress): generic `switch`, `button` and `light` components.
-- Upcoming phases: dashboard configuration, groups, labels and broader board testing.
+- Phase 7: generic `switch`, `button` and `light` components.
+- Phase 8: declarative dashboard configuration and NVS persistence.
+- Phase 9 (in progress): browser-based visual dashboard editor, without rebuilding or reflashing.
 
 See the [proposed architecture](docs/architecture.en.md) for the next implementation's layers, decisions and scope.
 
@@ -43,7 +44,7 @@ The UI automatically displays `sensor`, `binary_sensor`, `switch`, `button` and 
 
 ## Dashboard configuration
 
-The initial configuration lives in `web/src/dashboard-config.js` and is bundled into `web/poc.js`. It supports device name and subtitle, groups, group order, entity visibility, labels, descriptions, group assignment and per-entity order. To show only an explicit selection, set `showUnconfiguredEntities: false` and mark each desired entity with `visible: true`. Entity keys must match `name_id` (falling back to `id`). The device name is read from ESPHome's initial SSE config event; `deviceName` can override it.
+The dashboard includes a visual editor available from “Configure dashboard”. It can change the device name and subtitle, automatic discovery visibility, entity visibility, labels, descriptions, groups and ordering, and create additional groups. Changes are saved through `POST /dashboard-config` into ESP32 NVS preferences and survive reboots. The current storage limit is 768 bytes; the editor displays the serialized size before saving. Firmware defaults remain available in `web/src/dashboard-config.js`.
 
 ## Versioning
 
