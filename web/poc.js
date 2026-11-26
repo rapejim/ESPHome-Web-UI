@@ -217,11 +217,20 @@
 
   function mergeDashboardConfig(base, saved){
     if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
+    const groups=Array.isArray(saved.groups)?saved.groups.filter((group)=>
+      group&&typeof group.id==="string"&&typeof group.title==="string"&&
+      Array.isArray(group.domains)&&group.domains.every((domain)=>typeof domain==="string")
+    ):base.groups;
+    const entities=saved.entities&&typeof saved.entities==="object"&&!Array.isArray(saved.entities)
+      ?Object.fromEntries(Object.entries(saved.entities).filter(([,value])=>value&&typeof value==="object"&&!Array.isArray(value)))
+      :{};
     return {
       ...base,
-      ...saved,
-      groups:Array.isArray(saved.groups)?saved.groups:base.groups,
-      entities:{...base.entities,...(saved.entities&&typeof saved.entities==="object"?saved.entities:{})}
+      deviceName:typeof saved.deviceName==="string"?saved.deviceName:base.deviceName,
+      subtitle:typeof saved.subtitle==="string"?saved.subtitle:base.subtitle,
+      showUnconfiguredEntities:typeof saved.showUnconfiguredEntities==="boolean"?saved.showUnconfiguredEntities:base.showUnconfiguredEntities,
+      groups,
+      entities:{...base.entities,...entities}
     };
   }
 
@@ -519,7 +528,7 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
-        <footer>ESPHome Web UI · <span id="app-version">v0.5.3</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.5.4</span> · Sin servicios externos</footer>
       </main>
     `;
 
@@ -575,6 +584,12 @@ class ESPHomeWebUI extends HTMLElement {
       if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
       this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
       for (const entity of this._registry.getAll()) this._renderEntity(entity);
+      for (const [id, group] of this._groupContainers) {
+        if (group.grid.children.length === 0) {
+          group.section.remove();
+          this._groupContainers.delete(id);
+        }
+      }
     } catch (error) {
       // La ausencia de configuración persistida no impide cargar el dashboard predeterminado.
     }
