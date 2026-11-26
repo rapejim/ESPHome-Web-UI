@@ -429,3 +429,6 @@ footer {
   font-family: inherit;
   font-size: inherit;
 }
+
+
+[hidden]{display:none!important}.binary-sensor-card .sensor-value{font-size:1.65rem}.binary-sensor-card.binary-active{border-color:#51d49a}.binary-sensor-card.binary-inactive{border-color:#52647d}
