@@ -165,8 +165,15 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 
-.sensor-unit {
+.sensor-unit,
+.sensor-description {
+  display: block;
+  color: #9ba8ba;
   font-size: 0.75rem;
+}
+
+.sensor-description:empty {
+  display: none;
 }
 
 .control-card,
