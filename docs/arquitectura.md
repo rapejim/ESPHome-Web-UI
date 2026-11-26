@@ -106,6 +106,10 @@ Los archivos generados deben poder reproducirse desde el código fuente mediante
 - Configuración remota o persistencia de dashboards en el dispositivo.
 - Publicación de una primera versión estable y elección de licencia.
 
+## Configuración de dashboards
+
+La configuración declarativa vive en `web/src/dashboard-config.js` y se empaqueta en el bundle local. Cada entidad puede configurarse por su identificador normalizado (`name_id`, con fallback a `id`) con `visible`, `label`, `unit`, `group` y `order`. Los grupos declaran título, dominios, tipo de cuadrícula y orden. `showUnconfiguredEntities: false` activa el modo de selección explícita. La cabecera obtiene el nombre real desde `title` en el primer evento SSE `ping`, que ESPHome rellena con `friendly_name` o `name`; `deviceName` permite una etiqueta fija.
+
 ## Siguiente entrega
 
-La siguiente entrega abordará la configuración de dashboards, selección explícita de entidades, grupos y orden visual.
+Validar esta configuración en ESP32-C6 Mini y, a continuación, estudiar edición visual/persistencia de dashboards sin añadir almacenamiento pesado al dispositivo.

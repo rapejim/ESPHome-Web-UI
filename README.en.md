@@ -41,6 +41,10 @@ Two board configurations are currently available, both sharing the same frontend
 
 The UI automatically displays `sensor`, `binary_sensor`, `switch`, `button` and `light` entities received from ESPHome. It uses ESPHome's `/events` SSE stream for state updates and log messages, and its REST endpoints to send commands.
 
+## Dashboard configuration
+
+The initial configuration lives in `web/src/dashboard-config.js` and is bundled into `web/poc.js`. It supports device name and subtitle, groups, group order, entity visibility, labels, units, group assignment and per-entity order. To show only an explicit selection, set `showUnconfiguredEntities: false` and mark each desired entity with `visible: true`. Entity keys must match `name_id` (falling back to `id`). The device name is read from ESPHome's initial SSE config event; `deviceName` can override it.
+
 ## Versioning
 
 The version is maintained in `package.json` using Semantic Versioning and injected into the UI footer by the build process.

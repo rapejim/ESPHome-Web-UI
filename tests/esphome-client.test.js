@@ -66,6 +66,16 @@ test("reports malformed state payloads without throwing", () => {
   assert.ok(error instanceof Error);
 });
 
+test("forwards the ESPHome device title from the initial ping config", () => {
+  const { client } = makeClient();
+  let config;
+  client.on("deviceConfig", (value) => { config = value; });
+  client.connect();
+  FakeEventSource.latest.emit("ping", '{"title":"Casa ESP32","comment":"Cuadro eléctrico"}');
+  assert.equal(config.title, "Casa ESP32");
+  assert.equal(config.comment, "Cuadro eléctrico");
+});
+
 test("marks the connection lost after the heartbeat timeout and recovers on ping", () => {
   const { client, advance, tick } = makeClient();
   const statuses = [];

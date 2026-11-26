@@ -24,8 +24,8 @@ La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobad
 - Fase 4: arquitectura del frontend reutilizable y cliente SSE/REST independiente.
 - Fase 5: registro normalizado de entidades.
 - Fase 6: componentes genéricos para sensores y sensores binarios, con versión visible en la interfaz.
-- Fase 7 (en curso): componentes genéricos para `switch`, `button` y `light`.
-- Próximas fases: configuración de dashboards, grupos, etiquetas y pruebas con más placas.
+- Fase 7: componentes genéricos para `switch`, `button` y `light`.
+- Fase 8 (en curso): configuración de dashboards, selección de entidades, grupos, etiquetas y orden visual.
 
 Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.
 
@@ -40,6 +40,10 @@ Actualmente hay dos configuraciones, ambas con el mismo frontend:
 - Hoja de estilos: [web/poc.css](web/poc.css)
 
 La interfaz muestra automáticamente las entidades `sensor`, `binary_sensor`, `switch`, `button` y `light` recibidas desde ESPHome. Utiliza el flujo SSE `/events` de ESPHome para recibir estados y mensajes de log, y sus endpoints REST para enviar órdenes.
+
+## Configuración del dashboard
+
+La configuración inicial se realiza en `web/src/dashboard-config.js` y se incluye en el firmware al generar `web/poc.js`. Permite definir el nombre y subtítulo, grupos, orden de grupos, visibilidad de entidades, etiquetas, unidades, grupo y orden de cada entidad. Para mostrar únicamente una selección explícita, establece `showUnconfiguredEntities: false` y marca con `visible: true` las entidades que quieras incluir. Los identificadores deben coincidir con `name_id` (con fallback a `id`). El nombre del dispositivo se obtiene del evento SSE inicial de ESPHome; `deviceName` permite sobrescribirlo.
 
 ## Versionado
 

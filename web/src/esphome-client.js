@@ -61,8 +61,16 @@
 
       this.events.addEventListener("log", (event) => this._emit("log", event.data));
 
-      this.events.addEventListener("ping", () => {
+      this.events.addEventListener("ping", (event) => {
         this.lastPingAt = this.now();
+        if (event.data) {
+          try {
+            const config = JSON.parse(event.data);
+            if (config && typeof config === "object") this._emit("deviceConfig", config);
+          } catch (error) {
+            this._emit("protocolError", error);
+          }
+        }
         this._setConnection(true, "Conectado");
       });
 

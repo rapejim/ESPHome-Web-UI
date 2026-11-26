@@ -106,6 +106,10 @@ Generated files must be reproducible from source through a documented command. C
 - Remote configuration or dashboard persistence on the device.
 - First stable release and license selection.
 
+## Dashboard configuration
+
+The declarative configuration lives in `web/src/dashboard-config.js` and is bundled locally. Each entity can be configured by its normalized identifier (`name_id`, falling back to `id`) with `visible`, `label`, `unit`, `group` and `order`. Groups declare their title, domains, grid type and order. Set `showUnconfiguredEntities: false` to enable explicit selection. The header reads the device name from `title` in ESPHome's initial SSE `ping` event, populated from `friendly_name` or the node name; `deviceName` can override it.
+
 ## Next deliverable
 
-The next deliverable will address dashboard configuration, explicit entity selection, groups and visual ordering.
+Validate this configuration on the ESP32-C6 Mini, then evaluate visual dashboard editing and persistence without adding heavy storage requirements to the device.
