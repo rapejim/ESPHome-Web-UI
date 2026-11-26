@@ -528,7 +528,7 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
-        <footer>ESPHome Web UI · <span id="app-version">v0.5.4</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.5.5</span> · Sin servicios externos</footer>
       </main>
     `;
 
@@ -542,6 +542,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._actuatorCards = new Map();
     this._groupContainers = new Map();
     this._dashboardConfig = DASHBOARD_CONFIG;
+    this._deviceInfo = {};
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
       if (type === "added" || type === "updated") this._renderEntity(entity);
@@ -563,11 +564,8 @@ class ESPHomeWebUI extends HTMLElement {
     this._client.on("connection", ({ connected, label }) => this._setConnection(connected, label));
     this._client.on("state", (data) => this._registry.update(data));
     this._client.on("deviceConfig", (config) => {
-      const configuredName = DASHBOARD_CONFIG.deviceName.trim();
-      const deviceName = configuredName || (typeof config.title === "string" ? config.title.trim() : "");
-      if (deviceName) this.querySelector("#device-title").textContent = deviceName;
-      const subtitle = DASHBOARD_CONFIG.subtitle || (typeof config.comment === "string" ? config.comment.trim() : "") || "Panel de control independiente";
-      this.querySelector("#device-subtitle").textContent = subtitle;
+      this._deviceInfo = config;
+      this._renderDeviceHeader();
     });
     this._client.on("log", (message) => this._appendLog(message));
     this._client.on("protocolError", () => this._showFeedback("No se ha podido interpretar una actualización."));
@@ -583,6 +581,7 @@ class ESPHomeWebUI extends HTMLElement {
       const saved = await response.json();
       if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
       this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
+      this._renderDeviceHeader();
       for (const entity of this._registry.getAll()) this._renderEntity(entity);
       for (const [id, group] of this._groupContainers) {
         if (group.grid.children.length === 0) {
@@ -593,6 +592,16 @@ class ESPHomeWebUI extends HTMLElement {
     } catch (error) {
       // La ausencia de configuración persistida no impide cargar el dashboard predeterminado.
     }
+  }
+
+  _renderDeviceHeader() {
+    const configuredName = this._dashboardConfig.deviceName.trim();
+    const deviceName = configuredName || (typeof this._deviceInfo.title === "string" ? this._deviceInfo.title.trim() : "");
+    if (deviceName) this.querySelector("#device-title").textContent = deviceName;
+    const subtitle = this._dashboardConfig.subtitle.trim() ||
+      (typeof this._deviceInfo.comment === "string" ? this._deviceInfo.comment.trim() : "") ||
+      "Panel de control independiente";
+    this.querySelector("#device-subtitle").textContent = subtitle;
   }
 
   _appendLog(message) {
