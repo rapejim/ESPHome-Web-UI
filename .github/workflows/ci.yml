@@ -109,6 +109,12 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Run frontend unit tests
+        run: npm test
+
+      - name: Verify generated frontend bundle
+        run: npm run build:check
+
       - name: Check JavaScript syntax
         if: ${{ hashFiles('web/**/*.js') != '' }}
         shell: bash
