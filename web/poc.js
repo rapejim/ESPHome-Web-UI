@@ -86,12 +86,32 @@ class ESPHomeWebUI extends HTMLElement {
         </section>
 
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+
+        <section class="logs-section" aria-label="Registro del dispositivo">
+          <details class="logs-panel">
+            <summary>
+              <span>Registro del dispositivo</span>
+              <span id="log-count" class="log-count">0</span>
+            </summary>
+            <div class="logs-toolbar">
+              <span id="log-status" class="logs-status">Esperando mensajes…</span>
+              <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+            </div>
+            <div id="device-logs" class="device-logs" role="log" aria-live="off" aria-relevant="additions">
+              <p class="logs-empty">Los mensajes del dispositivo aparecerán aquí.</p>
+            </div>
+          </details>
+        </section>
+
         <footer>ESPHome Web UI · PoC · Sin servicios externos</footer>
       </main>
     `;
 
     this._status = this.querySelector("#connection-status");
     this._feedback = this.querySelector("#feedback");
+    this._logs = this.querySelector("#device-logs");
+    this._logCount = this.querySelector("#log-count");
+    this._logStatus = this.querySelector("#log-status");
     this._bindControls();
     this._connectEvents();
   }
@@ -124,6 +144,12 @@ class ESPHomeWebUI extends HTMLElement {
     this.querySelector("#light-off").addEventListener("click", async () => {
       await this._postEntity(ENTITY_IDS.light, "turn_off");
     });
+
+    this.querySelector("#logs-clear").addEventListener("click", () => {
+      this._logs.replaceChildren();
+      this._logCount.textContent = "0";
+      this._logStatus.textContent = "Registro limpiado";
+    });
   }
 
   _connectEvents() {
@@ -141,6 +167,10 @@ class ESPHomeWebUI extends HTMLElement {
       }
     });
 
+    this._events.addEventListener("log", (event) => {
+      this._appendLog(event.data);
+    });
+
     this._events.addEventListener("ping", () => {
       this._setConnection(true);
     });
@@ -148,6 +178,32 @@ class ESPHomeWebUI extends HTMLElement {
     this._events.addEventListener("error", () => {
       this._setConnection(false);
     });
+  }
+
+  _appendLog(message) {
+    const wasNearBottom =
+      this._logs.scrollHeight - this._logs.scrollTop - this._logs.clientHeight < 48;
+    const empty = this._logs.querySelector(".logs-empty");
+    if (empty) empty.remove();
+
+    // Log messages may contain ANSI color sequences. Render as text, never HTML.
+    const cleanMessage = String(message).replace(/\\u001b\\[[0-?]*[ -/]*[@-~]/g, "");
+    const line = document.createElement("div");
+    line.className = "log-line";
+    line.textContent = cleanMessage;
+
+    const level = cleanMessage.match(/\\[([EWIDV])\\]/)?.[1] || "";
+    if (level) line.dataset.level = level;
+    this._logs.append(line);
+
+    // Keep browser memory bounded on devices that emit frequent debug messages.
+    while (this._logs.children.length > 250) {
+      this._logs.firstElementChild.remove();
+    }
+
+    this._logCount.textContent = String(this._logs.children.length);
+    this._logStatus.textContent = "Recibiendo mensajes en tiempo real";
+    if (wasNearBottom) this._logs.scrollTop = this._logs.scrollHeight;
   }
 
   _applyState(data) {
