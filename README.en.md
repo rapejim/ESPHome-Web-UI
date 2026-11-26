@@ -16,12 +16,15 @@ The project aims to replace the native ESPHome web interface with a custom respo
 
 ## Project status
 
-The project is in its proof-of-concept (PoC) stage.
+The proof of concept has been validated on ESP32-C6 Mini hardware. Readings, controls, the log viewer and disconnect/recovery behavior have been tested.
 
-- Phase 1: repository scaffolding and GitHub Actions CI.
+- Phase 1: repository scaffolding and CI.
 - Phase 2: ESP32 PoC using ESPHome's built-in web server, local JavaScript and local CSS.
-- Phase 3: ESP32-C6 Mini configuration example reusing the same frontend.
-- Upcoming phases: reusable components, entity discovery/configuration, visual design system, broader board testing and initial releases.
+- Phase 3: ESP32-C6 Mini example and functional hardware validation.
+- Phase 4 (in progress): reusable frontend architecture.
+- Upcoming phases: extract the SSE/REST client, entity registry, domain components, dashboard configuration and broader board testing.
+
+See the [proposed architecture](docs/architecture.en.md) for the next implementation's layers, decisions and scope.
 
 ## Proof of concept
 
@@ -38,9 +41,10 @@ The PoC displays live temperature and humidity readings, a switch and an RGB lig
 ## Development principles
 
 - Do not modify `main` directly; submit changes through pull requests.
-- Keep commits small and focused.
+- Keep commits small and focused, then batch them before pushing to GitHub.
 - Avoid runtime dependencies and external network requests.
 - Validate ESPHome configurations and compile firmware in GitHub Actions whenever examples are present.
+- Automated checks run on PRs; `workflow_dispatch` is available for manual runs.
 
 ## Documentation languages
 
