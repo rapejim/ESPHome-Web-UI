@@ -17,6 +17,7 @@ class ESPHomeWebUI extends HTMLElement {
           </div>
         </header>
 
+        <dashboard-editor></dashboard-editor>
         <div id="dashboard-sections"></div>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
 
@@ -36,6 +37,7 @@ class ESPHomeWebUI extends HTMLElement {
       </main>
     `;
 
+    this._editor = this.querySelector("dashboard-editor");
     this._status = this.querySelector("#connection-status");
     this._feedback = this.querySelector("#feedback");
     this._logs = this.querySelector("#device-logs");
@@ -49,7 +51,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._deviceInfo = {};
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
-      if (type === "added" || type === "updated") this._renderEntity(entity);
+      if (type === "added" || type === "updated") { this._renderEntity(entity); this._renderEditor(); }
     });
     this._bindControls();
     this._connectClient();
@@ -87,6 +89,7 @@ class ESPHomeWebUI extends HTMLElement {
       this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
       this._renderDeviceHeader();
       for (const entity of this._registry.getAll()) this._renderEntity(entity);
+      this._renderEditor();
       for (const [id, group] of this._groupContainers) {
         if (group.grid.children.length === 0) {
           group.section.remove();
@@ -96,6 +99,26 @@ class ESPHomeWebUI extends HTMLElement {
     } catch (error) {
       // La ausencia de configuración persistida no impide cargar el dashboard predeterminado.
     }
+  }
+
+  _renderEditor() {
+    if (!this._editor) return;
+    this._editor.setData(this._dashboardConfig, this._registry.getAll(), (config) => this._saveDashboardConfig(config));
+  }
+
+  async _saveDashboardConfig(config) {
+    const body = JSON.stringify(config);
+    const bytes = new TextEncoder().encode(body).length;
+    if (bytes > 768) throw new Error("La configuración supera el límite de 768 bytes.");
+    const response = await this._client.fetchImpl("/dashboard-config", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body
+    });
+    if (response.status !== 202 && response.status !== 204) throw new Error("Error HTTP " + response.status);
+    this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, config);
+    this._renderDeviceHeader();
+    for (const entity of this._registry.getAll()) this._renderEntity(entity);
+    this._renderEditor();
+    this._showFeedback(response.status === 202 ? "Configuración guardada." : "La configuración ya estaba guardada.");
   }
 
   _renderDeviceHeader() {
