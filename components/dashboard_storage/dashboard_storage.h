@@ -28,6 +28,7 @@ class DashboardStorage : public Component, public AsyncWebHandler {
   struct StoredConfig {
     uint32_t magic{0};
     uint16_t length{0};
+    uint32_t checksum{0};
     char json[MAX_CONFIG_SIZE + 1]{};
   };
 
