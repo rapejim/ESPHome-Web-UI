@@ -98,12 +98,15 @@ Generated files must be reproducible from source through a documented command. C
 - Bound browser memory used by logs and histories.
 - Account for the ESP32's limited memory when considering entity counts and simultaneous clients.
 
+## Dashboard configuration persistence
+
+Custom dashboard configuration is stored as bounded JSON in ESP32 preferences. The `/dashboard-config` endpoint is registered on ESPHome's shared HTTP server and uses its authentication and origin middleware. Request bodies are limited to 768 bytes; no filesystem or second HTTP server is added. Writes run on ESPHome's main loop and are skipped when the configuration is unchanged.
+
 ## Out of immediate scope
 
 - Full support for every ESPHome domain.
-- Visual dashboard editor.
+- Visual dashboard editor (next phase).
 - Home Assistant as a backend.
-- Remote configuration or dashboard persistence on the device.
 - First stable release and license selection.
 
 ## Dashboard configuration

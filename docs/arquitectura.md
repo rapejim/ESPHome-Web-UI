@@ -98,12 +98,15 @@ Los archivos generados deben poder reproducirse desde el código fuente mediante
 - Limitar memoria usada por logs e historiales en el navegador.
 - El número de entidades y clientes simultáneos debe tenerse en cuenta por la memoria limitada del ESP32.
 
+## Persistencia de configuración
+
+La configuración personalizada se guarda como JSON acotado en las preferencias persistentes del ESP32. El endpoint `/dashboard-config` se registra en el servidor HTTP compartido de ESPHome y utiliza su middleware de autenticación y control de origen. El cuerpo está limitado a 768 bytes; no se incorpora un sistema de archivos ni un servidor HTTP adicional. Las escrituras se ejecutan en el bucle principal de ESPHome y solo cuando cambia el contenido.
+
 ## Fuera del alcance inmediato
 
 - Soporte completo de todos los dominios ESPHome.
-- Editor visual de dashboards.
+- Editor visual de dashboards (siguiente fase).
 - Integración con Home Assistant como backend.
-- Configuración remota o persistencia de dashboards en el dispositivo.
 - Publicación de una primera versión estable y elección de licencia.
 
 ## Configuración de dashboards

@@ -36,3 +36,11 @@ test("supports hiding a default entity", () => {
   const config = {...DASHBOARD_CONFIG,entities:{"light/Accent":{visible:false}}};
   assert.equal(getDashboardEntityConfig({id:"light/Accent",domain:"light",name:"Accent"},config).visible,false);
 });
+
+test("ignores malformed saved group and entity entries", () => {
+  const merged=mergeDashboardConfig(DASHBOARD_CONFIG,{groups:[null,{id:"ok",title:"Válido",domains:["sensor"]}],entities:{"sensor/Bad":null,"sensor/Good":{visible:false}}});
+  assert.equal(merged.groups.length,1);
+  assert.equal(merged.groups[0].id,"ok");
+  assert.equal(merged.entities["sensor/Bad"],undefined);
+  assert.equal(merged.entities["sensor/Good"].visible,false);
+});

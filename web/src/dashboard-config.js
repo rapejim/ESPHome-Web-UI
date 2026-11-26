@@ -20,11 +20,20 @@
 
   function mergeDashboardConfig(base, saved){
     if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
+    const groups=Array.isArray(saved.groups)?saved.groups.filter((group)=>
+      group&&typeof group.id==="string"&&typeof group.title==="string"&&
+      Array.isArray(group.domains)&&group.domains.every((domain)=>typeof domain==="string")
+    ):base.groups;
+    const entities=saved.entities&&typeof saved.entities==="object"&&!Array.isArray(saved.entities)
+      ?Object.fromEntries(Object.entries(saved.entities).filter(([,value])=>value&&typeof value==="object"&&!Array.isArray(value)))
+      :{};
     return {
       ...base,
-      ...saved,
-      groups:Array.isArray(saved.groups)?saved.groups:base.groups,
-      entities:{...base.entities,...(saved.entities&&typeof saved.entities==="object"?saved.entities:{})}
+      deviceName:typeof saved.deviceName==="string"?saved.deviceName:base.deviceName,
+      subtitle:typeof saved.subtitle==="string"?saved.subtitle:base.subtitle,
+      showUnconfiguredEntities:typeof saved.showUnconfiguredEntities==="boolean"?saved.showUnconfiguredEntities:base.showUnconfiguredEntities,
+      groups,
+      entities:{...base.entities,...entities}
     };
   }
 

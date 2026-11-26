@@ -88,6 +88,12 @@ class ESPHomeWebUI extends HTMLElement {
       if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
       this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
       for (const entity of this._registry.getAll()) this._renderEntity(entity);
+      for (const [id, group] of this._groupContainers) {
+        if (group.grid.children.length === 0) {
+          group.section.remove();
+          this._groupContainers.delete(id);
+        }
+      }
     } catch (error) {
       // La ausencia de configuración persistida no impide cargar el dashboard predeterminado.
     }
