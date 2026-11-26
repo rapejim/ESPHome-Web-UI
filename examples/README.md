@@ -15,7 +15,7 @@ La PoC incluye dos configuraciones de placa que comparten el mismo frontend loca
 
 ## Antes de compilar o flashear
 
-Edita el YAML del ejemplo que vayas a utilizar:
+Edita el YAML del ejemplo que vayas a utilizar. Conserva la estructura del repositorio: ambos YAML cargan el componente local `dashboard_storage` desde `../components`, por lo que esa carpeta debe estar disponible junto al directorio `examples`:
 
 1. Sustituye `REPLACE_WITH_WIFI_SSID` y `REPLACE_WITH_WIFI_PASSWORD` por las credenciales de tu Wi-Fi.
 2. Cambia el usuario y la contraseña de la interfaz web. Los valores incluidos en el repositorio son solo marcadores de ejemplo y no deben utilizarse en una red real.
@@ -40,6 +40,8 @@ esphome config examples/esp32-c6-mini.yaml
 esphome compile examples/esp32-c6-mini.yaml
 esphome run examples/esp32-c6-mini.yaml
 ```
+
+El componente local requiere estos tres ficheros, que deben copiarse manteniendo la estructura `components/dashboard_storage/` si preparas el flasheo fuera del repositorio: `__init__.py`, `dashboard_storage.h` y `dashboard_storage.cpp`.
 
 Conecta la placa por USB para el primer flasheo. Cuando se conecte a la Wi-Fi, abre su dirección IP en el navegador; se solicitarán las credenciales del servidor web.
 

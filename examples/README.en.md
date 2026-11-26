@@ -15,7 +15,7 @@ The PoC includes two board-specific configurations that share the same local fro
 
 ## Before compiling or flashing
 
-Edit the YAML file for the example you intend to use:
+Edit the YAML file for the example you intend to use. Keep the repository layout: both YAML files load the local `dashboard_storage` component from `../components`, so that directory must be available next to `examples`:
 
 1. Replace `REPLACE_WITH_WIFI_SSID` and `REPLACE_WITH_WIFI_PASSWORD` with your Wi-Fi credentials.
 2. Change the web interface username and password. The committed values are demonstration placeholders and must not be used on a real network.
@@ -40,6 +40,8 @@ esphome config examples/esp32-c6-mini.yaml
 esphome compile examples/esp32-c6-mini.yaml
 esphome run examples/esp32-c6-mini.yaml
 ```
+
+The local component requires these three files under `components/dashboard_storage/`: `__init__.py`, `dashboard_storage.h` and `dashboard_storage.cpp`. Preserve that directory structure if preparing the flash environment outside the repository.
 
 Connect the board over USB for the first flash. After it joins Wi-Fi, open its IP address in a browser; the web server credentials will be requested.
 
