@@ -25,7 +25,7 @@ void DashboardStorage::setup() {
     this->stored_ = StoredConfig{};
   }
 
-  // Register before web_server starts; WebServerBase applies the configured authentication.
+  // Register on the shared HTTP server; its middleware enforces configured authentication.
   web_server_base::global_web_server_base->add_handler(this);
   ESP_LOGCONFIG(TAG, "Dashboard configuration storage ready (max %u bytes)", MAX_CONFIG_SIZE);
 }
@@ -79,11 +79,6 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
     return;
   }
 
-  if (this->save_pending_) {
-    request->send(503, "application/json", R"({"error":"configuration save in progress"})");
-    return;
-  }
-
   const size_t content_length = request->contentLength();
   if (this->body_invalid_ || this->body_request_ != request || content_length == 0 ||
       content_length > MAX_CONFIG_SIZE || content_length != this->body_length_ ||
@@ -117,7 +112,7 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
   }
 
   // ESPHome's preference queue is shared state: write and sync only on the main loop.
-  this->save_pending_ = true;
+  this->save_pending_.store(true);
   this->defer([this]() {
     if (!this->preference_.save(&this->stored_)) {
       ESP_LOGE(TAG, "Could not queue dashboard configuration");
@@ -129,7 +124,7 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
         ESP_LOGW(TAG, "Dashboard configuration queued but NVS sync failed");
       }
     }
-    this->save_pending_ = false;
+    this->save_pending_.store(false);
   });
   request->send(202, "application/json", R"({"status":"accepted"})");
 }
