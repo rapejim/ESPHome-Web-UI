@@ -13,8 +13,8 @@ class ESPHomeWebUI extends HTMLElement {
         <header class="topbar">
           <div>
             <p class="eyebrow">ESPHOME · LOCAL CONTROL</p>
-            <h1>Mi dispositivo</h1>
-            <p class="subtitle">Panel de control independiente</p>
+            <h1 id="device-title">Mi dispositivo</h1>
+            <p id="device-subtitle" class="subtitle">Panel de control independiente</p>
           </div>
           <div id="connection-status" class="connection offline">
             <span class="connection-dot"></span>
@@ -22,32 +22,7 @@ class ESPHomeWebUI extends HTMLElement {
           </div>
         </header>
 
-        <section class="section">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">LECTURAS</p>
-              <h2>Estado ambiental</h2>
-            </div>
-            <span class="section-note">Actualización en tiempo real</span>
-          </div>
-          <div id="sensor-grid" class="sensor-grid"></div>
-        </section>
-
-        <section id="binary-sensors-section" class="section" hidden>
-          <div class="section-heading"><div><p class="eyebrow">ESTADOS</p><h2>Sensores binarios</h2></div></div>
-          <div id="binary-sensor-grid" class="sensor-grid"></div>
-        </section>
-
-        <section id="actuators-section" class="section" hidden>
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">ACTUADORES</p>
-              <h2>Controles</h2>
-            </div>
-            <span class="section-note">Acciones disponibles en el dispositivo</span>
-          </div>
-          <div id="actuators-grid" class="actuators-grid"></div>
-        </section>
+        <div id="dashboard-sections"></div>
 
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
 
@@ -79,6 +54,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._sensorCards = new Map();
     this._binarySensorCards = new Map();
     this._actuatorCards = new Map();
+    this._groupContainers = new Map();
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
       if (type === "added" || type === "updated") this._renderEntity(entity);
@@ -101,6 +77,13 @@ class ESPHomeWebUI extends HTMLElement {
       this._setConnection(connected, label);
     });
     this._client.on("state", (data) => this._registry.update(data));
+    this._client.on("deviceConfig", (config) => {
+      const configuredName = DASHBOARD_CONFIG.deviceName.trim();
+      const deviceName = configuredName || (typeof config.title === "string" ? config.title.trim() : "");
+      if (deviceName) this.querySelector("#device-title").textContent = deviceName;
+      const subtitle = DASHBOARD_CONFIG.subtitle || (typeof config.comment === "string" ? config.comment.trim() : "");
+      if (subtitle) this.querySelector("#device-subtitle").textContent = subtitle;
+    });
     this._client.on("log", (message) => this._appendLog(message));
     this._client.on("protocolError", () => {
       this._showFeedback("No se ha podido interpretar una actualización.");
@@ -135,43 +118,97 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _renderEntity(entity) {
-    if (entity.domain === "sensor") { this._upsertDomainCard(entity, "sensor"); return; }
-    if (entity.domain === "binary_sensor") { this._upsertDomainCard(entity, "binary_sensor"); return; }
-    if (["switch", "button", "light"].includes(entity.domain)) {
-      this._upsertActuatorCard(entity);
+    const presentation = getDashboardEntityConfig(entity, DASHBOARD_CONFIG);
+    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id);
+    if (!presentation.visible) {
+      existing?.remove();
+      this._sensorCards.delete(entity.id);
+      this._binarySensorCards.delete(entity.id);
+      this._actuatorCards.delete(entity.id);
+      return;
+    }
+    const displayEntity = {
+      ...entity,
+      name: presentation.label || entity.name,
+      attributes: {
+        ...entity.attributes,
+        ...(presentation.unit ? { unit_of_measurement: presentation.unit } : {}),
+      },
+    };
+    const group = this._getGroupContainer(presentation.group);
+    if (entity.domain === "sensor") {
+      this._upsertDashboardCard(displayEntity, this._sensorCards, group.grid, createSensorCard, updateSensorCard, presentation.order);
+    } else if (entity.domain === "binary_sensor") {
+      this._upsertDashboardCard(displayEntity, this._binarySensorCards, group.grid, createBinarySensorCard, updateBinarySensorCard, presentation.order);
+    } else if (["switch", "button", "light"].includes(entity.domain)) {
+      const onCommand = (entityId, action, params) => this._sendEntity(entityId, action, params);
+      const cards = this._actuatorCards;
+      let card = cards.get(entity.id);
+      if (!card) {
+        if (entity.domain === "switch") card = createSwitchCard(displayEntity, onCommand);
+        else if (entity.domain === "button") card = createButtonCard(displayEntity, onCommand);
+        else if (entity.domain === "light") card = createLightCard(displayEntity, onCommand);
+        if (!card) return;
+        cards.set(entity.id, card);
+        group.grid.append(card);
+      } else {
+        if (entity.domain === "switch") updateSwitchCard(card, displayEntity);
+        else if (entity.domain === "button") updateButtonCard(card, displayEntity);
+        else if (entity.domain === "light") updateLightCard(card, displayEntity);
+        if (card.parentElement !== group.grid) group.grid.append(card);
+      }
+      card.dataset.order = String(presentation.order);
+      this._sortGroupCards(group.grid);
     }
   }
 
-  _upsertDomainCard(entity, domain) {
-    const binary = domain === "binary_sensor";
-    const cards = binary ? this._binarySensorCards : this._sensorCards;
-    const grid = this.querySelector(binary ? "#binary-sensor-grid" : "#sensor-grid");
-    const section = binary ? this.querySelector("#binary-sensors-section") : grid.closest(".section");
+  _getGroupContainer(groupConfig) {
+    let container = this._groupContainers.get(groupConfig.id);
+    if (container) return container;
+    const section = document.createElement("section");
+    section.className = "section dashboard-group";
+    section.dataset.groupId = groupConfig.id;
+    section.dataset.order = String(groupConfig.order);
+    const heading = document.createElement("div");
+    heading.className = "section-heading";
+    const title = document.createElement("h2");
+    title.textContent = groupConfig.title;
+    heading.append(title);
+    const grid = document.createElement("div");
+    grid.className = groupConfig.layout === "sensors" ? "sensor-grid" : "actuators-grid";
+    section.append(heading, grid);
+    this.querySelector("#dashboard-sections").append(section);
+    container = { section, grid };
+    this._groupContainers.set(groupConfig.id, container);
+    this._sortDashboardGroups();
+    return container;
+  }
+
+  _upsertDashboardCard(entity, cards, grid, createCard, updateCard, order) {
     let card = cards.get(entity.id);
     if (!card) {
-      card = binary ? createBinarySensorCard(entity) : createSensorCard(entity);
+      card = createCard(entity);
       cards.set(entity.id, card);
       grid.append(card);
-    } else if (binary) updateBinarySensorCard(card, entity);
-    else updateSensorCard(card, entity);
-    section.hidden = false;
+    } else {
+      updateCard(card, entity);
+      if (card.parentElement !== grid) grid.append(card);
+    }
+    card.dataset.order = String(order);
+    this._sortGroupCards(grid);
   }
-  _upsertActuatorCard(entity) {
-    const grid = this.querySelector("#actuators-grid");
-    const section = this.querySelector("#actuators-section");
-    let card = this._actuatorCards.get(entity.id);
-    const onCommand = (entityId, action, params) => this._sendEntity(entityId, action, params);
-    if (!card) {
-      if (entity.domain === "switch") card = createSwitchCard(entity, onCommand);
-      else if (entity.domain === "button") card = createButtonCard(entity, onCommand);
-      else if (entity.domain === "light") card = createLightCard(entity, onCommand);
-      if (!card) return;
-      this._actuatorCards.set(entity.id, card);
-      grid.append(card);
-    } else if (entity.domain === "switch") updateSwitchCard(card, entity);
-    else if (entity.domain === "button") updateButtonCard(card, entity);
-    else if (entity.domain === "light") updateLightCard(card, entity);
-    section.hidden = false;
+
+  _sortGroupCards(grid) {
+    [...grid.children]
+      .sort((a, b) => Number(a.dataset.order || 0) - Number(b.dataset.order || 0))
+      .forEach((card) => grid.append(card));
+  }
+
+  _sortDashboardGroups() {
+    const root = this.querySelector("#dashboard-sections");
+    [...root.children]
+      .sort((a, b) => Number(a.dataset.order || 0) - Number(b.dataset.order || 0))
+      .forEach((section) => root.append(section));
   }
 
   async _sendEntity(entityId, action, params = new URLSearchParams()) {

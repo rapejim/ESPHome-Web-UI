@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 const sourceFiles = [
   "web/src/esphome-client.js",
   "web/src/entity-registry.js",
+  "web/src/dashboard-config.js",
   "web/src/sensor-component.js",
   "web/src/binary-sensor-component.js",
   "web/src/switch-component.js",
