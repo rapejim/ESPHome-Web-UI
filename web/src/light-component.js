@@ -27,34 +27,80 @@
     return Math.round(Math.max(0,Math.min(255,Number(value)))).toString(16).padStart(2,"0");
   }
 
+  function buildLightCommandParams({color="#ffffff",brightness=255,supportsColor=true,supportsBrightness=true}={}){
+    const params=new URLSearchParams({transition:"0.3"});
+    if(supportsBrightness)params.set("brightness",String(Math.max(0,Math.min(255,Math.round(Number(brightness))))));
+    if(supportsColor){
+      const hex=String(color).replace(/^#/,"");
+      if(/^[0-9a-f]{6}$/i.test(hex)){
+        params.set("r",String(Number.parseInt(hex.slice(0,2),16)));
+        params.set("g",String(Number.parseInt(hex.slice(2,4),16)));
+        params.set("b",String(Number.parseInt(hex.slice(4,6),16)));
+      }
+    }
+    return params;
+  }
+
   function createLightCard(entity,onCommand){
     const card=document.createElement("article");
     card.className="card light-card actuator-card";
     card.dataset.entityId=entity.id;
-    card.innerHTML='<div class="light-heading"><div><h3 class="actuator-name"></h3><p class="muted actuator-state"></p></div><span class="light-preview"></span></div><div class="light-controls"><label class="color-control light-color-control" hidden><span>Color</span><input class="light-color" type="color" value="#ffffff" aria-label="Elegir color"></label><label class="brightness-control" hidden><span>Brillo</span><input class="light-brightness" type="range" min="0" max="255" step="1" value="255"><output class="brightness-value">100 %</output></label><div class="actuator-actions"><button class="button secondary light-on" type="button">Encender</button><button class="button secondary light-off" type="button">Apagar</button><button class="button primary light-apply" type="button" hidden>Aplicar ajustes</button></div></div>';
+    card.innerHTML='<div class="light-heading"><div><h3 class="actuator-name"></h3><p class="muted actuator-state"></p></div><span class="light-preview"></span></div><div class="light-controls"><label class="color-control light-color-control" hidden><span>Color</span><input class="light-color" type="color" value="#ffffff" aria-label="Elegir color"></label><label class="brightness-control" hidden><span>Brillo</span><input class="light-brightness" type="range" min="0" max="255" step="1" value="255"><output class="brightness-value">100 %</output></label><div class="actuator-actions"><button class="button secondary light-on" type="button">Encender</button><button class="button secondary light-off" type="button">Apagar</button></div></div>';
     const colorInput=card.querySelector(".light-color");
     const brightnessInput=card.querySelector(".light-brightness");
+
+    const currentSettings=()=>({
+      color:colorInput.value,
+      brightness:Number(brightnessInput.value),
+      supportsColor:!card.querySelector(".light-color-control").hidden,
+      supportsBrightness:!card.querySelector(".brightness-control").hidden
+    });
+
+    const sendSettings=async()=>{
+      if(card._lightTimer)clearTimeout(card._lightTimer);
+      card._lightTimer=null;
+      if(!card._lightDirty)return;
+      card._lightDirty=false;
+      const settings=currentSettings();
+      card._lightDraft={...settings,expiresAt:Date.now()+3000};
+      card._lightDraftTimer=setTimeout(()=>{
+        card._lightDraft=null;
+        if(card._lastEntity)updateLightCard(card,card._lastEntity);
+      },3100);
+      await onCommand(entity.id,"turn_on",buildLightCommandParams(settings));
+    };
+
+    const scheduleSettings=(delay)=>{
+      card._lightDirty=true;
+      if(card._lightTimer)clearTimeout(card._lightTimer);
+      card._lightTimer=setTimeout(()=>{sendSettings();},delay);
+    };
+
     brightnessInput.addEventListener("input",()=>{
       card.querySelector(".brightness-value").textContent=`${Math.round(Number(brightnessInput.value)/255*100)} %`;
+      scheduleSettings(350);
     });
-    card.querySelector(".light-on").addEventListener("click",()=>onCommand(entity.id,"turn_on"));
-    card.querySelector(".light-off").addEventListener("click",()=>onCommand(entity.id,"turn_off"));
-    card.querySelector(".light-apply").addEventListener("click",()=>{
-      const params=new URLSearchParams({transition:"0.3"});
-      if(!card.querySelector(".brightness-control").hidden)params.set("brightness",brightnessInput.value);
-      if(!card.querySelector(".light-color-control").hidden){
-        const hex=colorInput.value;
-        params.set("r",String(Number.parseInt(hex.slice(1,3),16)));
-        params.set("g",String(Number.parseInt(hex.slice(3,5),16)));
-        params.set("b",String(Number.parseInt(hex.slice(5,7),16)));
-      }
-      onCommand(entity.id,"turn_on",params);
+    brightnessInput.addEventListener("change",()=>scheduleSettings(100));
+    colorInput.addEventListener("input",()=>{
+      card.querySelector(".light-preview").style.backgroundColor=colorInput.value;
     });
+    colorInput.addEventListener("change",()=>scheduleSettings(80));
+
+    card.querySelector(".light-on").addEventListener("click",async()=>{
+      if(card._lightDirty)await sendSettings();
+      else await onCommand(entity.id,"turn_on",buildLightCommandParams(currentSettings()));
+    });
+    card.querySelector(".light-off").addEventListener("click",async()=>{
+      if(card._lightDirty)await sendSettings();
+      await onCommand(entity.id,"turn_off");
+    });
+
     updateLightCard(card,entity);
     return card;
   }
 
   function updateLightCard(card,entity){
+    card._lastEntity=entity;
     const view=getLightPresentation(entity);
     card.querySelector(".actuator-name").textContent=view.name;
     card.querySelector(".actuator-state").textContent=view.state;
@@ -62,22 +108,46 @@
     card.querySelector(".light-off").disabled=!view.isOn;
     const colorControl=card.querySelector(".light-color-control");
     const brightnessControl=card.querySelector(".brightness-control");
-    const apply=card.querySelector(".light-apply");
     colorControl.hidden=!view.supportsColor;
     brightnessControl.hidden=!view.supportsBrightness;
-    apply.hidden=!view.supportsColor&&!view.supportsBrightness;
+
+    let draft=card._lightDraft;
+    if(draft&&Date.now()>=draft.expiresAt){
+      card._lightDraft=null;
+      draft=null;
+    }
+    if(draft){
+      const colorMatches=!draft.supportsColor||(
+        view.supportsColor&&
+        Number(view.color.r)===Number.parseInt(draft.color.slice(1,3),16)&&
+        Number(view.color.g)===Number.parseInt(draft.color.slice(3,5),16)&&
+        Number(view.color.b)===Number.parseInt(draft.color.slice(5,7),16)
+      );
+      const brightnessMatches=!draft.supportsBrightness||(
+        view.supportsBrightness&&view.brightness===draft.brightness
+      );
+      if(colorMatches&&brightnessMatches){
+        card._lightDraft=null;
+        if(card._lightDraftTimer)clearTimeout(card._lightDraftTimer);
+        draft=null;
+      }
+    }
+
     if(view.supportsColor){
-      const hex=`#${channelHex(view.color.r)}${channelHex(view.color.g)}${channelHex(view.color.b)}`;
+      const hex=draft?.supportsColor?draft.color:`#${channelHex(view.color.r)}${channelHex(view.color.g)}${channelHex(view.color.b)}`;
       const input=card.querySelector(".light-color");
-      if(document.activeElement!==input)input.value=hex;
+      if(!draft&&document.activeElement!==input)input.value=hex;
+      if(draft)input.value=hex;
       card.querySelector(".light-preview").style.backgroundColor=hex;
     }
     if(view.supportsBrightness){
+      const brightness=draft?.supportsBrightness?draft.brightness:view.brightness;
       const input=card.querySelector(".light-brightness");
-      if(document.activeElement!==input)input.value=String(view.brightness);
-      card.querySelector(".brightness-value").textContent=`${Math.round(view.brightness/255*100)} %`;
+      if(!draft&&document.activeElement!==input)input.value=String(brightness);
+      if(draft)input.value=String(brightness);
+      card.querySelector(".brightness-value").textContent=`${Math.round(brightness/255*100)} %`;
     }
   }
 
-  return {getLightPresentation,createLightCard,updateLightCard};
+  return {getLightPresentation,buildLightCommandParams,createLightCard,updateLightCard};
 });

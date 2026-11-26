@@ -3,7 +3,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const {getSwitchPresentation}=require("../web/src/switch-component.js");
 const {getButtonPresentation}=require("../web/src/button-component.js");
-const {getLightPresentation}=require("../web/src/light-component.js");
+const {getLightPresentation,buildLightCommandParams}=require("../web/src/light-component.js");
 
 test("switch derives explicit on/off commands without using toggle",()=>{
   assert.deepEqual(getSwitchPresentation({name:"Relé",state:"ON"}),{name:"Relé",isOn:true,state:"Encendido",action:"turn_off",actionLabel:"Apagar"});
@@ -35,4 +35,19 @@ test("light without optional capabilities remains an on/off control",()=>{
 test("light clamps reported brightness to its valid range",()=>{
   assert.equal(getLightPresentation({attributes:{brightness:300}}).brightness,255);
   assert.equal(getLightPresentation({attributes:{brightness:-5}}).brightness,0);
+});
+
+test("light command includes selected RGB color and brightness together",()=>{
+  const params=buildLightCommandParams({color:"#ff0000",brightness:128,supportsColor:true,supportsBrightness:true});
+  assert.equal(params.get("r"),"255");
+  assert.equal(params.get("g"),"0");
+  assert.equal(params.get("b"),"0");
+  assert.equal(params.get("brightness"),"128");
+  assert.equal(params.get("transition"),"0.3");
+});
+
+test("light command respects capabilities and clamps brightness",()=>{
+  const params=buildLightCommandParams({color:"#12abef",brightness:400,supportsColor:false,supportsBrightness:true});
+  assert.equal(params.has("r"),false);
+  assert.equal(params.get("brightness"),"255");
 });
