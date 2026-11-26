@@ -1,45 +1,51 @@
 # ESPHome Web UI
 
-A reusable, self-hosted web interface for ESPHome devices.
+Interfaz web reutilizable y autoalojada para dispositivos ESPHome.
 
-The project aims to replace the native ESPHome web interface with a responsive UI served directly by the ESP32. Runtime assets are local to the device: no CDN, external fonts, JavaScript framework, or internet connection is required by the browser.
+El objetivo del proyecto es sustituir la interfaz web nativa de ESPHome por una interfaz propia, adaptable a móviles, tabletas y ordenadores, servida directamente desde el ESP32. Los recursos necesarios para ejecutarla se alojan en el propio dispositivo: no necesita CDN, fuentes externas, frameworks JavaScript ni conexión a Internet.
 
-## Project goals
+[English version](README.en.md)
 
-- Support common ESPHome entities: sensors, switches, lights, fans, climate and more.
-- Work on mobile, tablet and desktop.
-- Keep the interface independent from the physical hardware and entity configuration.
-- Use native HTML, CSS and JavaScript with a small runtime footprint.
-- Reuse ESPHome's existing HTTP, REST and Server-Sent Events APIs where practical.
+## Objetivos
 
-## Current status
+- Dar soporte a entidades habituales de ESPHome: sensores, interruptores, luces, ventiladores, climatización y más.
+- Adaptarse a móviles, tabletas y ordenadores.
+- Mantener la interfaz independiente del hardware y de la configuración de entidades.
+- Utilizar HTML, CSS y JavaScript nativos con un consumo reducido de recursos.
+- Reutilizar las API HTTP, REST y Server-Sent Events de ESPHome siempre que sea posible.
 
-The project is in its proof-of-concept stage.
+## Estado del proyecto
 
-- Phase 1: repository scaffolding and GitHub Actions CI.
-- Phase 2: ESP32 proof of concept using the built-in ESPHome web server, a local JavaScript module and local CSS.
-- Phase 3: ESP32-C6 Mini example configuration, sharing the same PoC frontend.
-- Later phases: reusable UI components, entity discovery/configuration, visual design system, broader board testing and releases.
+El proyecto se encuentra en fase de prueba de concepto (PoC).
 
-## Proof of concept
+- Fase 1: estructura inicial del repositorio y CI con GitHub Actions.
+- Fase 2: PoC para ESP32 mediante el servidor web integrado de ESPHome, JavaScript local y CSS local.
+- Fase 3: ejemplo de configuración para ESP32-C6 Mini que reutiliza el mismo frontend.
+- Próximas fases: componentes reutilizables, descubrimiento y configuración de entidades, sistema visual, pruebas con más placas y primeras versiones.
 
-The PoC currently includes two board-specific configurations:
+## Prueba de concepto
 
-- Classic ESP32 DevKit: [examples/esp32-basic.yaml](examples/esp32-basic.yaml)
+Actualmente hay dos configuraciones, ambas con el mismo frontend:
+
+- ESP32 DevKit clásico: [examples/esp32-basic.yaml](examples/esp32-basic.yaml)
 - ESP32-C6 Mini: [examples/esp32-c6-mini.yaml](examples/esp32-c6-mini.yaml)
-- Setup and flashing instructions: [examples/README.md](examples/README.md)
-- Shared frontend module: [web/poc.js](web/poc.js)
-- Shared stylesheet: [web/poc.css](web/poc.css)
+- Instrucciones de configuración y flasheo: [examples/README.md](examples/README.md)
+- Módulo JavaScript: [web/poc.js](web/poc.js)
+- Hoja de estilos: [web/poc.css](web/poc.css)
 
-Both examples demonstrate live temperature and humidity readings, a switch, and an RGB light. They use ESPHome's /events Server-Sent Events endpoint for state updates and its REST endpoints for control.
+La PoC muestra lecturas de temperatura y humedad en tiempo real, un interruptor y una luz RGB. Utiliza el flujo SSE `/events` de ESPHome para recibir estados y mensajes de log, y sus endpoints REST para enviar órdenes.
 
-## Development principles
+## Principios de desarrollo
 
-- No changes directly to main; work is submitted through pull requests.
-- Keep commits small and focused.
-- Avoid runtime dependencies and external network requests.
-- Validate ESPHome examples and compile firmware in GitHub Actions whenever examples are present.
+- No se modifica `main` directamente: los cambios se proponen mediante pull requests.
+- Los commits deben ser pequeños y centrados en un único propósito.
+- Evitar dependencias en tiempo de ejecución y peticiones a servicios externos.
+- Validar las configuraciones ESPHome y compilar los firmwares en GitHub Actions siempre que existan ejemplos.
 
-## License
+## Idiomas de la documentación
 
-License to be decided before the first public release.
+El español es el idioma principal del proyecto. Los documentos en inglés se mantienen en archivos independientes con el sufijo `.en.md` y enlaces entre ambas versiones.
+
+## Licencia
+
+Pendiente de decidir antes de la primera versión pública.
