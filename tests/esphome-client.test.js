@@ -118,3 +118,41 @@ test("close releases the event stream and heartbeat timer", () => {
   assert.equal(client.events, null);
   assert.equal(client.heartbeatTimer, null);
 });
+
+
+test("binds native browser APIs to globalThis", async () => {
+  const originals = {
+    fetch: globalThis.fetch,
+    setInterval: globalThis.setInterval,
+    clearInterval: globalThis.clearInterval,
+  };
+  let intervalCreated = false;
+  let intervalCleared = false;
+  try {
+    globalThis.fetch = function () {
+      assert.equal(this, globalThis);
+      return Promise.resolve({ ok: true, status: 200 });
+    };
+    globalThis.setInterval = function () {
+      assert.equal(this, globalThis);
+      intervalCreated = true;
+      return 123;
+    };
+    globalThis.clearInterval = function (handle) {
+      assert.equal(this, globalThis);
+      assert.equal(handle, 123);
+      intervalCleared = true;
+    };
+
+    const client = new ESPHomeClient({ EventSourceClass: FakeEventSource });
+    client.connect();
+    assert.equal(intervalCreated, true);
+    await client.command("switch/demo", "turn_on");
+    client.close();
+    assert.equal(intervalCleared, true);
+  } finally {
+    globalThis.fetch = originals.fetch;
+    globalThis.setInterval = originals.setInterval;
+    globalThis.clearInterval = originals.clearInterval;
+  }
+});
