@@ -18,22 +18,24 @@ The project is in its proof-of-concept stage.
 
 - Phase 1: repository scaffolding and GitHub Actions CI.
 - Phase 2: ESP32 proof of concept using the built-in ESPHome web server, a local JavaScript module and local CSS.
+- Phase 3: ESP32-C6 Mini example configuration, sharing the same PoC frontend.
 - Later phases: reusable UI components, entity discovery/configuration, visual design system, broader board testing and releases.
 
 ## Proof of concept
 
-The first example targets a generic ESP32 DevKit board:
+The PoC currently includes two board-specific configurations:
 
-- Example configuration: [examples/esp32-basic.yaml](examples/esp32-basic.yaml)
+- Classic ESP32 DevKit: [examples/esp32-basic.yaml](examples/esp32-basic.yaml)
+- ESP32-C6 Mini: [examples/esp32-c6-mini.yaml](examples/esp32-c6-mini.yaml)
 - Setup and flashing instructions: [examples/README.md](examples/README.md)
-- Frontend module: [web/poc.js](web/poc.js)
-- Stylesheet: [web/poc.css](web/poc.css)
+- Shared frontend module: [web/poc.js](web/poc.js)
+- Shared stylesheet: [web/poc.css](web/poc.css)
 
-The PoC demonstrates live temperature and humidity readings, a switch, and an RGB light. It uses ESPHome's `/events` Server-Sent Events endpoint for state updates and its REST endpoints for control.
+Both examples demonstrate live temperature and humidity readings, a switch, and an RGB light. They use ESPHome's /events Server-Sent Events endpoint for state updates and its REST endpoints for control.
 
 ## Development principles
 
-- No changes directly to `main`; work is submitted through pull requests.
+- No changes directly to main; work is submitted through pull requests.
 - Keep commits small and focused.
 - Avoid runtime dependencies and external network requests.
 - Validate ESPHome examples and compile firmware in GitHub Actions whenever examples are present.
