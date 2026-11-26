@@ -16,12 +16,15 @@ El objetivo del proyecto es sustituir la interfaz web nativa de ESPHome por una 
 
 ## Estado del proyecto
 
-El proyecto se encuentra en fase de prueba de concepto (PoC).
+La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobado las lecturas, los controles, el visor de logs y la detección/recuperación de desconexiones.
 
-- Fase 1: estructura inicial del repositorio y CI con GitHub Actions.
+- Fase 1: estructura inicial del repositorio y CI.
 - Fase 2: PoC para ESP32 mediante el servidor web integrado de ESPHome, JavaScript local y CSS local.
-- Fase 3: ejemplo de configuración para ESP32-C6 Mini que reutiliza el mismo frontend.
-- Próximas fases: componentes reutilizables, descubrimiento y configuración de entidades, sistema visual, pruebas con más placas y primeras versiones.
+- Fase 3: ejemplo ESP32-C6 Mini y validación funcional en hardware.
+- Fase 4 (en curso): arquitectura del frontend reutilizable.
+- Próximas fases: extraer el cliente SSE/REST, registro de entidades, componentes por dominio, configuración de dashboards y pruebas con más placas.
+
+Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.
 
 ## Prueba de concepto
 
@@ -38,9 +41,10 @@ La PoC muestra lecturas de temperatura y humedad en tiempo real, un interruptor 
 ## Principios de desarrollo
 
 - No se modifica `main` directamente: los cambios se proponen mediante pull requests.
-- Los commits deben ser pequeños y centrados en un único propósito.
+- Los commits deben ser pequeños y centrados en un único propósito; se agrupan antes de subirlos a GitHub.
 - Evitar dependencias en tiempo de ejecución y peticiones a servicios externos.
 - Validar las configuraciones ESPHome y compilar los firmwares en GitHub Actions siempre que existan ejemplos.
+- Las comprobaciones automáticas se ejecutan en PRs; `workflow_dispatch` permite lanzarlas manualmente.
 
 ## Idiomas de la documentación
 
