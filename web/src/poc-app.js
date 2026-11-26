@@ -51,7 +51,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._deviceInfo = {};
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
-      if (type === "added" || type === "updated") { this._renderEntity(entity); this._renderEditor(); }
+      if (type === "added" || type === "updated") { this._renderEntity(entity); if (type === "added") this._renderEditor(); }
     });
     this._bindControls();
     this._connectClient();
