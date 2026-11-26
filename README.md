@@ -21,7 +21,8 @@ La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobad
 - Fase 1: estructura inicial del repositorio y CI.
 - Fase 2: PoC para ESP32 mediante el servidor web integrado de ESPHome, JavaScript local y CSS local.
 - Fase 3: ejemplo ESP32-C6 Mini y validación funcional en hardware.
-- Fase 4 (en curso): arquitectura del frontend reutilizable.
+- Fase 4: arquitectura del frontend reutilizable y cliente SSE/REST independiente.
+- Fase 5 (en curso): registro normalizado de entidades y preparación de componentes genéricos.
 - Próximas fases: extraer el cliente SSE/REST, registro de entidades, componentes por dominio, configuración de dashboards y pruebas con más placas.
 
 Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.

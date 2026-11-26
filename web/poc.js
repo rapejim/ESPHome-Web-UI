@@ -111,6 +111,82 @@
   return { ESPHomeClient };
 });
 
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.ESPHomeEntityRegistry = api.ESPHomeEntityRegistry;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  class ESPHomeEntityRegistry {
+    constructor() {
+      this.entities = new Map();
+      this.listeners = new Set();
+    }
+
+    static normalize(payload) {
+      if (!payload || typeof payload !== "object") return null;
+      const entityId = payload.name_id || payload.id;
+      if (typeof entityId !== "string" || !entityId.includes("/")) return null;
+      const separator = entityId.indexOf("/");
+      const domain = entityId.slice(0, separator);
+      const objectId = entityId.slice(separator + 1);
+      if (!domain || !objectId) return null;
+      return {
+        id: entityId,
+        domain,
+        objectId,
+        name: payload.name || objectId,
+        state: payload.state ?? payload.value ?? null,
+        attributes: payload,
+        updatedAt: Date.now(),
+      };
+    }
+
+    update(payload) {
+      const entity = ESPHomeEntityRegistry.normalize(payload);
+      if (!entity) return null;
+      const previous = this.entities.get(entity.id);
+      const next = {
+        ...previous,
+        ...entity,
+        attributes: { ...(previous?.attributes || {}), ...entity.attributes },
+      };
+      this.entities.set(next.id, next);
+      this._emit({ type: previous ? "updated" : "added", entity: next, previous: previous || null });
+      return next;
+    }
+
+    get(id) {
+      return this.entities.get(id) || null;
+    }
+
+    getAll() {
+      return [...this.entities.values()];
+    }
+
+    getByDomain(domain) {
+      return this.getAll().filter((entity) => entity.domain === domain);
+    }
+
+    subscribe(callback) {
+      this.listeners.add(callback);
+      return () => this.listeners.delete(callback);
+    }
+
+    _emit(change) {
+      for (const callback of this.listeners) callback(change);
+    }
+
+    clear() {
+      this.entities.clear();
+      this._emit({ type: "cleared", entity: null, previous: null });
+    }
+  }
+
+  return { ESPHomeEntityRegistry };
+});
+
 const ENTITY_IDS = {
   temperature: "sensor/Temperatura demo",
   humidity: "sensor/Humedad demo",
@@ -225,6 +301,10 @@ class ESPHomeWebUI extends HTMLElement {
     this._logs = this.querySelector("#device-logs");
     this._logCount = this.querySelector("#log-count");
     this._logStatus = this.querySelector("#log-status");
+    this._registry = new ESPHomeEntityRegistry();
+    this._registry.subscribe(({ type, entity }) => {
+      if (type === "added" || type === "updated") this._renderEntity(entity);
+    });
     this._bindControls();
     this._connectClient();
   }
@@ -270,7 +350,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._client.on("connection", ({ connected, label }) => {
       this._setConnection(connected, label);
     });
-    this._client.on("state", (data) => this._applyState(data));
+    this._client.on("state", (data) => this._registry.update(data));
     this._client.on("log", (message) => this._appendLog(message));
     this._client.on("protocolError", () => {
       this._showFeedback("No se ha podido interpretar una actualización.");
@@ -304,24 +384,19 @@ class ESPHomeWebUI extends HTMLElement {
     if (wasNearBottom) this._logs.scrollTop = this._logs.scrollHeight;
   }
 
-  _applyState(data) {
-    // ESPHome is migrating from name_id to id; both use domain/entity paths
-    // in current firmware. Keep the fallback for compatibility.
-    const entityId = data.name_id || data.id;
-    if (!entityId) return;
-
-    if (entityId === ENTITY_IDS.temperature) {
-      this.querySelector("#temperature-value").textContent = data.state ?? "—";
+  _renderEntity(entity) {
+    if (entity.id === ENTITY_IDS.temperature) {
+      this.querySelector("#temperature-value").textContent = entity.state ?? "—";
       return;
     }
 
-    if (entityId === ENTITY_IDS.humidity) {
-      this.querySelector("#humidity-value").textContent = data.state ?? "—";
+    if (entity.id === ENTITY_IDS.humidity) {
+      this.querySelector("#humidity-value").textContent = entity.state ?? "—";
       return;
     }
 
-    if (entityId === ENTITY_IDS.switch) {
-      const isOn = data.value === true || data.state === "ON";
+    if (entity.id === ENTITY_IDS.switch) {
+      const isOn = entity.state === true || entity.state === "ON";
       const button = this.querySelector("#switch-action");
       button.disabled = false;
       button.dataset.state = isOn ? "on" : "off";
@@ -330,15 +405,15 @@ class ESPHomeWebUI extends HTMLElement {
       return;
     }
 
-    if (entityId === ENTITY_IDS.light) {
-      const isOn = data.state === "ON";
+    if (entity.id === ENTITY_IDS.light) {
+      const isOn = entity.state === "ON";
       this.querySelector("#light-state").textContent = isOn ? "Encendida" : "Apagada";
-
-      if (data.color) {
+      const color = entity.attributes.color;
+      if (color) {
         const toHex = (value) => Math.round(value).toString(16).padStart(2, "0");
-        const color = `#${toHex(data.color.r)}${toHex(data.color.g)}${toHex(data.color.b)}`;
-        this.querySelector("#light-color").value = color;
-        this.querySelector("#light-preview").style.backgroundColor = color;
+        const hex = `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
+        this.querySelector("#light-color").value = hex;
+        this.querySelector("#light-preview").style.backgroundColor = hex;
       }
     }
   }

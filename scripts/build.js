@@ -7,6 +7,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const sourceFiles = [
   "web/src/esphome-client.js",
+  "web/src/entity-registry.js",
   "web/src/poc-app.js",
 ];
 const outputFile = path.join(root, "web/poc.js");
