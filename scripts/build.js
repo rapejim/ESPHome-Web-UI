@@ -9,6 +9,7 @@ const sourceFiles = [
   "web/src/esphome-client.js",
   "web/src/entity-registry.js",
   "web/src/dashboard-config.js",
+  "web/src/dashboard-editor.js",
   "web/src/sensor-component.js",
   "web/src/binary-sensor-component.js",
   "web/src/switch-component.js",
