@@ -1,7 +1,7 @@
 {
   "name": "esphome-web-ui",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Self-hosted web UI for ESPHome devices",
   "scripts": {
     "build": "node scripts/build.js",

@@ -4,6 +4,7 @@
 #include "esphome/core/preferences.h"
 #include "esphome/components/web_server_base/web_server_base.h"
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -39,7 +40,7 @@ class DashboardStorage : public Component, public AsyncWebHandler {
   uint32_t body_checksum_{2166136261UL};
   bool body_invalid_{false};
   bool has_config_{false};
-  bool save_pending_{false};
+  std::atomic<bool> save_pending_{false};
 };
 
 }  // namespace esphome::dashboard_storage

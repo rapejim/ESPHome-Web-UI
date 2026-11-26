@@ -31,7 +31,7 @@ void DashboardStorage::setup() {
 }
 
 float DashboardStorage::get_setup_priority() const {
-  // Register the route before web_server initializes the shared HTTP server.
+  // Register on the shared server; this component runs just after web_server setup.
   return setup_priority::WIFI - 2.0f;
 }
 
@@ -46,7 +46,7 @@ void DashboardStorage::handleBody(AsyncWebServerRequest *request, uint8_t *data,
                                   size_t index, size_t total) {
   if (index == 0) {
     this->body_request_ = request;
-    if (this->save_pending_) {
+    if (this->save_pending_.load()) {
       this->body_invalid_ = true;
       return;
     }
@@ -65,6 +65,11 @@ void DashboardStorage::handleBody(AsyncWebServerRequest *request, uint8_t *data,
 }
 
 void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
+  if (this->save_pending_.load()) {
+    request->send(503, "application/json", R"({"error":"configuration operation in progress"})");
+    return;
+  }
+
   if (request->method() == HTTP_GET) {
     if (!this->has_config_) {
       request->send(404, "application/json", "{}");
@@ -84,7 +89,7 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
       content_length > MAX_CONFIG_SIZE || content_length != this->body_length_ ||
       this->stored_.json[0] != '{' || this->stored_.json[this->body_length_ - 1] != '}') {
     this->body_request_ = nullptr;
-    this->save_pending_ = true;
+    this->save_pending_.store(true);
     this->defer([this]() {
       if (this->has_config_ && !this->preference_.load(&this->stored_)) {
         this->stored_ = StoredConfig{};
@@ -92,7 +97,7 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
       } else if (!this->has_config_) {
         this->stored_ = StoredConfig{};
       }
-      this->save_pending_ = false;
+      this->save_pending_.store(false);
     });
     request->send(400, "application/json", R"({"error":"invalid or oversized configuration"})");
     return;
