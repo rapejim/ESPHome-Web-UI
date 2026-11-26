@@ -80,6 +80,7 @@
         size.classList.toggle("over-limit",bytes>768);
         save.disabled=bytes>768;
       };
+      show.addEventListener("change",()=>{rows.forEach(r=>{r.visible.checked=show.checked;});updateSize();});
       [name,subtitle,show,...rows.flatMap(r=>[r.visible,r.label,r.description,r.group,r.order])].forEach(input=>input.addEventListener("input",updateSize));
       addGroup.addEventListener("click",()=>{
         const title=newGroup.value.trim();if(!title)return;
