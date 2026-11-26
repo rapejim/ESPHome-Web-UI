@@ -9,15 +9,15 @@
 
 namespace esphome::dashboard_storage {
 
-class DashboardStorage : public Component, public web_server_base::AsyncWebHandler {
+class DashboardStorage : public Component, public AsyncWebHandler {
  public:
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override;
 
-  bool canHandle(web_server_base::AsyncWebServerRequest *request) const override;
-  void handleRequest(web_server_base::AsyncWebServerRequest *request) override;
-  void handleBody(web_server_base::AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index,
+  bool canHandle(AsyncWebServerRequest *request) const override;
+  void handleRequest(AsyncWebServerRequest *request) override;
+  void handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index,
                   size_t total) override;
 
  protected:
@@ -33,8 +33,9 @@ class DashboardStorage : public Component, public web_server_base::AsyncWebHandl
 
   ESPPreferenceObject preference_;
   StoredConfig stored_{};
-  web_server_base::AsyncWebServerRequest *body_request_{nullptr};
+  AsyncWebServerRequest *body_request_{nullptr};
   size_t body_length_{0};
+  uint32_t body_checksum_{2166136261UL};
   bool body_invalid_{false};
   bool has_config_{false};
 };

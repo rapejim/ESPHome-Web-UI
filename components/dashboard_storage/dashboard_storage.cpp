@@ -35,19 +35,20 @@ float DashboardStorage::get_setup_priority() const {
   return setup_priority::WIFI - 2.0f;
 }
 
-bool DashboardStorage::canHandle(web_server_base::AsyncWebServerRequest *request) const {
-  std::array<char, web_server_base::AsyncWebServerRequest::URL_BUF_SIZE> url{};
+bool DashboardStorage::canHandle(AsyncWebServerRequest *request) const {
+  std::array<char, AsyncWebServerRequest::URL_BUF_SIZE> url{};
   const auto path = request->url_to(url);
   return path == "/dashboard-config" &&
          (request->method() == HTTP_GET || request->method() == HTTP_POST);
 }
 
-void DashboardStorage::handleBody(web_server_base::AsyncWebServerRequest *request, uint8_t *data, size_t len,
+void DashboardStorage::handleBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
                                   size_t index, size_t total) {
   if (index == 0) {
     this->body_request_ = request;
     this->body_length_ = 0;
     this->body_invalid_ = total == 0 || total > MAX_CONFIG_SIZE;
+    this->body_checksum_ = 2166136261UL;
   }
   if (this->body_request_ != request || this->body_invalid_) return;
   if (index != this->body_length_ || len > MAX_CONFIG_SIZE - this->body_length_) {
@@ -55,10 +56,11 @@ void DashboardStorage::handleBody(web_server_base::AsyncWebServerRequest *reques
     return;
   }
   std::memcpy(this->stored_.json + this->body_length_, data, len);
+  for (size_t i = 0; i < len; i++) this->body_checksum_ = (this->body_checksum_ ^ data[i]) * 16777619UL;
   this->body_length_ += len;
 }
 
-void DashboardStorage::handleRequest(web_server_base::AsyncWebServerRequest *request) {
+void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
   if (request->method() == HTTP_GET) {
     if (!this->has_config_) {
       request->send(404, "application/json", "{}");
@@ -78,10 +80,13 @@ void DashboardStorage::handleRequest(web_server_base::AsyncWebServerRequest *req
   }
 
   this->stored_.json[this->body_length_] = '\0';
+  const bool changed = !this->has_config_ || this->stored_.length != this->body_length_ ||
+                       this->stored_.checksum != this->body_checksum_;
   this->stored_.magic = CONFIG_MAGIC;
   this->stored_.length = static_cast<uint16_t>(this->body_length_);
+  this->stored_.checksum = this->body_checksum_;
 
-  if (!this->has_config_ || this->preference_.save(&this->stored_)) {
+  if (!changed || this->preference_.save(&this->stored_)) {
     this->has_config_ = true;
     this->body_request_ = nullptr;
     request->send(204);
@@ -89,6 +94,7 @@ void DashboardStorage::handleRequest(web_server_base::AsyncWebServerRequest *req
   }
 
   this->body_request_ = nullptr;
+  this->preference_.load(&this->stored_);
   request->send(500, "application/json", "{\"error\":\"could not persist configuration\"}");
 }
 
