@@ -5,8 +5,7 @@
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
 
-  // Edita este objeto para adaptar el dashboard a las entidades de tu dispositivo.
-  // Los identificadores usan name_id y, como alternativa, id (por ejemplo: "sensor/Temperatura").
+  // Configuración predeterminada incluida en el firmware.
   const DASHBOARD_CONFIG = {
     deviceName: "",
     subtitle: "",
@@ -16,11 +15,18 @@
       {id:"binary",title:"Sensores binarios",domains:["binary_sensor"],layout:"sensors",order:20},
       {id:"controls",title:"Controles",domains:["switch","button","light"],layout:"controls",order:30}
     ],
-    entities: {
-      // "sensor/Temperatura demo": {visible:true,label:"Temperatura exterior",unit:"°C",group:"readings",order:10},
-      // "switch/Interruptor demo": {visible:false}
-    }
+    entities: {}
   };
+
+  function mergeDashboardConfig(base, saved){
+    if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
+    return {
+      ...base,
+      ...saved,
+      groups:Array.isArray(saved.groups)?saved.groups:base.groups,
+      entities:{...base.entities,...(saved.entities&&typeof saved.entities==="object"?saved.entities:{})}
+    };
+  }
 
   function getDashboardEntityConfig(entity, config=DASHBOARD_CONFIG){
     const custom=config.entities?.[entity.id]||{};
@@ -31,11 +37,11 @@
     return {
       visible:custom.visible===undefined?config.showUnconfiguredEntities!==false:custom.visible===true,
       label:custom.label||entity.name,
-      unit:custom.unit||"",
+      description:custom.description||"",
       group,
       order:Number.isFinite(Number(custom.order))?Number(custom.order):1000
     };
   }
 
-  return {DASHBOARD_CONFIG,getDashboardEntityConfig};
+  return {DASHBOARD_CONFIG,mergeDashboardConfig,getDashboardEntityConfig};
 });

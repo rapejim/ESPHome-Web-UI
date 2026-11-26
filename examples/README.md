@@ -48,7 +48,7 @@ Conecta la placa por USB para el primer flasheo. Cuando se conecte a la Wi-Fi, a
 - La temperatura y la humedad se actualizan cada cinco segundos.
 - El interruptor se puede encender y apagar.
 - El selector de color envía los valores rojo, verde y azul a la luz.
-- Los cambios de estado y los mensajes de log llegan mediante Server-Sent Events a través de `/events`.
+- Los cambios de estado y los mensajes de log llegan mediante Server-Sent Events a través de `/events`. La configuración guardada del dashboard se sirve desde `/dashboard-config` y persiste en las preferencias del ESP32.
 - Todos los recursos de la interfaz se sirven desde el ESP32. El navegador no necesita CDN ni acceso a Internet.
 
 ## Notas de implementación

@@ -18,15 +18,11 @@ class ESPHomeWebUI extends HTMLElement {
         </header>
 
         <div id="dashboard-sections"></div>
-
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
 
         <section class="logs-section" aria-label="Registro del dispositivo">
           <details class="logs-panel">
-            <summary>
-              <span>Registro del dispositivo</span>
-              <span id="log-count" class="log-count">0</span>
-            </summary>
+            <summary><span>Registro del dispositivo</span><span id="log-count" class="log-count">0</span></summary>
             <div class="logs-toolbar">
               <span id="log-status" class="logs-status">Esperando mensajes…</span>
               <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
@@ -36,7 +32,6 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
-
         <footer>ESPHome Web UI · <span id="app-version">v__APP_VERSION__</span> · Sin servicios externos</footer>
       </main>
     `;
@@ -50,6 +45,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._binarySensorCards = new Map();
     this._actuatorCards = new Map();
     this._groupContainers = new Map();
+    this._dashboardConfig = DASHBOARD_CONFIG;
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
       if (type === "added" || type === "updated") this._renderEntity(entity);
@@ -68,52 +64,54 @@ class ESPHomeWebUI extends HTMLElement {
 
   _connectClient() {
     this._client = new ESPHomeClient();
-    this._client.on("connection", ({ connected, label }) => {
-      this._setConnection(connected, label);
-    });
+    this._client.on("connection", ({ connected, label }) => this._setConnection(connected, label));
     this._client.on("state", (data) => this._registry.update(data));
     this._client.on("deviceConfig", (config) => {
       const configuredName = DASHBOARD_CONFIG.deviceName.trim();
       const deviceName = configuredName || (typeof config.title === "string" ? config.title.trim() : "");
       if (deviceName) this.querySelector("#device-title").textContent = deviceName;
       const subtitle = DASHBOARD_CONFIG.subtitle || (typeof config.comment === "string" ? config.comment.trim() : "") || "Panel de control independiente";
-      if (subtitle) this.querySelector("#device-subtitle").textContent = subtitle;
+      this.querySelector("#device-subtitle").textContent = subtitle;
     });
     this._client.on("log", (message) => this._appendLog(message));
-    this._client.on("protocolError", () => {
-      this._showFeedback("No se ha podido interpretar una actualización.");
-    });
+    this._client.on("protocolError", () => this._showFeedback("No se ha podido interpretar una actualización."));
+    this._loadDashboardConfig();
     this._client.connect();
   }
 
+  async _loadDashboardConfig() {
+    try {
+      const response = await this._client.fetchImpl("/dashboard-config", {method:"GET",cache:"no-store"});
+      if (response.status === 404) return;
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const saved = await response.json();
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+      this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
+      for (const entity of this._registry.getAll()) this._renderEntity(entity);
+    } catch (error) {
+      // La ausencia de configuración persistida no impide cargar el dashboard predeterminado.
+    }
+  }
+
   _appendLog(message) {
-    const wasNearBottom =
-      this._logs.scrollHeight - this._logs.scrollTop - this._logs.clientHeight < 48;
+    const wasNearBottom = this._logs.scrollHeight - this._logs.scrollTop - this._logs.clientHeight < 48;
     const empty = this._logs.querySelector(".logs-empty");
     if (empty) empty.remove();
-
-    // Log messages may contain ANSI color sequences. Render as text, never HTML.
     const cleanMessage = String(message).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
     const line = document.createElement("div");
     line.className = "log-line";
     line.textContent = cleanMessage;
-
     const level = cleanMessage.match(/\[([EWIDV])\]/)?.[1] || "";
     if (level) line.dataset.level = level;
     this._logs.append(line);
-
-    // Keep browser memory bounded on devices that emit frequent debug messages.
-    while (this._logs.children.length > 250) {
-      this._logs.firstElementChild.remove();
-    }
-
+    while (this._logs.children.length > 250) this._logs.firstElementChild.remove();
     this._logCount.textContent = String(this._logs.children.length);
     this._logStatus.textContent = "Recibiendo mensajes en tiempo real";
     if (wasNearBottom) this._logs.scrollTop = this._logs.scrollHeight;
   }
 
   _renderEntity(entity) {
-    const presentation = getDashboardEntityConfig(entity, DASHBOARD_CONFIG);
+    const presentation = getDashboardEntityConfig(entity, this._dashboardConfig);
     const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id);
     if (!presentation.visible) {
       existing?.remove();
@@ -122,111 +120,89 @@ class ESPHomeWebUI extends HTMLElement {
       this._actuatorCards.delete(entity.id);
       return;
     }
-    const displayEntity = {
-      ...entity,
-      name: presentation.label || entity.name,
-      attributes: {
-        ...entity.attributes,
-        ...(presentation.unit ? { unit_of_measurement: presentation.unit } : {}),
-      },
-    };
+    const displayEntity = {...entity,name:presentation.label||entity.name,description:presentation.description};
     const group = this._getGroupContainer(presentation.group);
     if (entity.domain === "sensor") {
-      this._upsertDashboardCard(displayEntity, this._sensorCards, group.grid, createSensorCard, updateSensorCard, presentation.order);
+      this._upsertDashboardCard(displayEntity,this._sensorCards,group.grid,createSensorCard,updateSensorCard,presentation.order);
     } else if (entity.domain === "binary_sensor") {
-      this._upsertDashboardCard(displayEntity, this._binarySensorCards, group.grid, createBinarySensorCard, updateBinarySensorCard, presentation.order);
-    } else if (["switch", "button", "light"].includes(entity.domain)) {
-      const onCommand = (entityId, action, params) => this._sendEntity(entityId, action, params);
-      const cards = this._actuatorCards;
-      let card = cards.get(entity.id);
-      if (!card) {
-        if (entity.domain === "switch") card = createSwitchCard(displayEntity, onCommand);
-        else if (entity.domain === "button") card = createButtonCard(displayEntity, onCommand);
-        else if (entity.domain === "light") card = createLightCard(displayEntity, onCommand);
-        if (!card) return;
-        cards.set(entity.id, card);
+      this._upsertDashboardCard(displayEntity,this._binarySensorCards,group.grid,createBinarySensorCard,updateBinarySensorCard,presentation.order);
+    } else if (["switch","button","light"].includes(entity.domain)) {
+      const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
+      const cards=this._actuatorCards;
+      let card=cards.get(entity.id);
+      if(!card){
+        if(entity.domain==="switch")card=createSwitchCard(displayEntity,onCommand);
+        else if(entity.domain==="button")card=createButtonCard(displayEntity,onCommand);
+        else if(entity.domain==="light")card=createLightCard(displayEntity,onCommand);
+        if(!card)return;
+        cards.set(entity.id,card);
         group.grid.append(card);
-      } else {
-        if (entity.domain === "switch") updateSwitchCard(card, displayEntity);
-        else if (entity.domain === "button") updateButtonCard(card, displayEntity);
-        else if (entity.domain === "light") updateLightCard(card, displayEntity);
-        if (card.parentElement !== group.grid) group.grid.append(card);
+      }else{
+        if(entity.domain==="switch")updateSwitchCard(card,displayEntity);
+        else if(entity.domain==="button")updateButtonCard(card,displayEntity);
+        else if(entity.domain==="light")updateLightCard(card,displayEntity);
+        if(card.parentElement!==group.grid)group.grid.append(card);
       }
-      card.dataset.order = String(presentation.order);
+      card.dataset.order=String(presentation.order);
       this._sortGroupCards(group.grid);
     }
   }
 
   _getGroupContainer(groupConfig) {
-    let container = this._groupContainers.get(groupConfig.id);
-    if (container) return container;
-    const section = document.createElement("section");
-    section.className = "section dashboard-group";
-    section.dataset.groupId = groupConfig.id;
-    section.dataset.order = String(groupConfig.order);
-    const heading = document.createElement("div");
-    heading.className = "section-heading";
-    const title = document.createElement("h2");
-    title.textContent = groupConfig.title;
+    let container=this._groupContainers.get(groupConfig.id);
+    if(container)return container;
+    const section=document.createElement("section");
+    section.className="section dashboard-group";
+    section.dataset.groupId=groupConfig.id;
+    section.dataset.order=String(groupConfig.order);
+    const heading=document.createElement("div");
+    heading.className="section-heading";
+    const title=document.createElement("h2");
+    title.textContent=groupConfig.title;
     heading.append(title);
-    const grid = document.createElement("div");
-    grid.className = groupConfig.layout === "sensors" ? "sensor-grid" : "actuators-grid";
-    section.append(heading, grid);
+    const grid=document.createElement("div");
+    grid.className=groupConfig.layout==="sensors"?"sensor-grid":"actuators-grid";
+    section.append(heading,grid);
     this.querySelector("#dashboard-sections").append(section);
-    container = { section, grid };
-    this._groupContainers.set(groupConfig.id, container);
+    container={section,grid};
+    this._groupContainers.set(groupConfig.id,container);
     this._sortDashboardGroups();
     return container;
   }
 
-  _upsertDashboardCard(entity, cards, grid, createCard, updateCard, order) {
-    let card = cards.get(entity.id);
-    if (!card) {
-      card = createCard(entity);
-      cards.set(entity.id, card);
-      grid.append(card);
-    } else {
-      updateCard(card, entity);
-      if (card.parentElement !== grid) grid.append(card);
-    }
-    card.dataset.order = String(order);
+  _upsertDashboardCard(entity,cards,grid,createCard,updateCard,order) {
+    let card=cards.get(entity.id);
+    if(!card){card=createCard(entity);cards.set(entity.id,card);grid.append(card);}
+    else{updateCard(card,entity);if(card.parentElement!==grid)grid.append(card);}
+    card.dataset.order=String(order);
     this._sortGroupCards(grid);
   }
 
   _sortGroupCards(grid) {
-    [...grid.children]
-      .sort((a, b) => Number(a.dataset.order || 0) - Number(b.dataset.order || 0))
-      .forEach((card) => grid.append(card));
+    [...grid.children].sort((a,b)=>Number(a.dataset.order||0)-Number(b.dataset.order||0)).forEach((card)=>grid.append(card));
   }
 
   _sortDashboardGroups() {
-    const root = this.querySelector("#dashboard-sections");
-    [...root.children]
-      .sort((a, b) => Number(a.dataset.order || 0) - Number(b.dataset.order || 0))
-      .forEach((section) => root.append(section));
+    const root=this.querySelector("#dashboard-sections");
+    [...root.children].sort((a,b)=>Number(a.dataset.order||0)-Number(b.dataset.order||0)).forEach((section)=>root.append(section));
   }
 
-  async _sendEntity(entityId, action, params = new URLSearchParams()) {
+  async _sendEntity(entityId,action,params=new URLSearchParams()) {
     this._showFeedback("Enviando orden…");
-    try {
-      await this._client.command(entityId, action, params);
-      this._showFeedback("Orden enviada correctamente.");
-    } catch (error) {
-      this._showFeedback(`No se ha podido enviar la orden: ${error.message}`);
-    }
+    try{await this._client.command(entityId,action,params);this._showFeedback("Orden enviada correctamente.");}
+    catch(error){this._showFeedback(`No se ha podido enviar la orden: ${error.message}`);}
   }
 
-  _setConnection(connected, label = connected ? "Conectado" : "Desconectado") {
-    this._status.classList.toggle("online", connected);
-    this._status.classList.toggle("offline", !connected);
-    this._status.lastElementChild.textContent = label;
+  _setConnection(connected,label) {
+    this._status.classList.toggle("online",connected);
+    this._status.classList.toggle("offline",!connected);
+    this._status.lastElementChild.textContent=label;
   }
 
   _showFeedback(message) {
-    this._feedback.textContent = message;
+    this._feedback.textContent=message;
+    this._feedback.dataset.updatedAt=String(Date.now());
   }
 }
 
-if (!customElements.get("esp-app")) {
-  customElements.define("esp-app", ESPHomeWebUI);
-}
+if(typeof customElements!=="undefined"&&!customElements.get("esp-app"))customElements.define("esp-app",ESPHomeWebUI);

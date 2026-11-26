@@ -48,7 +48,7 @@ Connect the board over USB for the first flash. After it joins Wi-Fi, open its I
 - Temperature and humidity update every five seconds.
 - The switch can be turned on and off.
 - The color picker sends red, green and blue values to the light.
-- State changes and log messages arrive through Server-Sent Events on `/events`.
+- State changes and log messages arrive through Server-Sent Events on `/events`. The saved dashboard configuration is served from `/dashboard-config` and persists in ESP32 preferences.
 - All UI assets are served by the ESP32. The browser does not need a CDN or internet access.
 
 ## Implementation notes

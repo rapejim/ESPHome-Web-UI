@@ -65,7 +65,7 @@ La configuración de una instalación debe poder declarar, progresivamente:
 
 - Título y descripción del dispositivo.
 - Entidades que se muestran y orden.
-- Etiquetas y unidades personalizadas.
+- Etiquetas y descripciones complementarias.
 - Grupos/secciones y opciones visuales.
 
 No se debe asumir que todas las entidades del dispositivo tienen que mostrarse. El descubrimiento automático podrá ayudar, pero la selección final debe ser configurable.
@@ -108,7 +108,7 @@ Los archivos generados deben poder reproducirse desde el código fuente mediante
 
 ## Configuración de dashboards
 
-La configuración declarativa vive en `web/src/dashboard-config.js` y se empaqueta en el bundle local. Cada entidad puede configurarse por su identificador normalizado (`name_id`, con fallback a `id`) con `visible`, `label`, `unit`, `group` y `order`. Los grupos declaran título, dominios, tipo de cuadrícula y orden. `showUnconfiguredEntities: false` activa el modo de selección explícita. La cabecera obtiene el nombre real desde `title` en el primer evento SSE `ping`, que ESPHome rellena con `friendly_name` o `name`; `deviceName` permite una etiqueta fija.
+La configuración declarativa vive en `web/src/dashboard-config.js` y se empaqueta en el bundle local. Cada entidad puede configurarse por su identificador normalizado (`name_id`, con fallback a `id`) con `visible`, `label`, `description`, `group` y `order`. Los grupos declaran título, dominios, tipo de cuadrícula y orden. `showUnconfiguredEntities: false` activa el modo de selección explícita. La cabecera obtiene el nombre real desde `title` en el primer evento SSE `ping`, que ESPHome rellena con `friendly_name` o `name`; `deviceName` permite una etiqueta fija.
 
 ## Siguiente entrega
 
