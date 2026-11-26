@@ -519,7 +519,7 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
-        <footer>ESPHome Web UI · <span id="app-version">v0.5.0</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.5.3</span> · Sin servicios externos</footer>
       </main>
     `;
 
