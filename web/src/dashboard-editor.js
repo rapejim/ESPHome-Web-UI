@@ -86,7 +86,7 @@
         let id=title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,18);
         if(!id||this.config.groups.some(g=>g.id===id)){status.textContent="Nombre de grupo no válido o repetido.";return;}
         const domains=DOMAINS.slice();
-        this.config.groups.push({id,title,domains,layout:"sensors",order:(this.config.groups.length+1)*10});
+        this.config.groups.push({id,title,domains,layout:"controls",order:(this.config.groups.length+1)*10});
         newGroup.value="";this.render();
         const reopened=this.querySelector("details");if(reopened)reopened.open=true;
       });
