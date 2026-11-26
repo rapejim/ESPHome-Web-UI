@@ -65,7 +65,7 @@ An installation configuration should progressively declare:
 
 - Device title and description.
 - Visible entities and ordering.
-- Custom labels and units.
+- Custom labels and descriptions.
 - Groups/sections and visual options.
 
 Not every device entity should be assumed visible. Automatic discovery may help, but final selection must be configurable.
@@ -108,7 +108,7 @@ Generated files must be reproducible from source through a documented command. C
 
 ## Dashboard configuration
 
-The declarative configuration lives in `web/src/dashboard-config.js` and is bundled locally. Each entity can be configured by its normalized identifier (`name_id`, falling back to `id`) with `visible`, `label`, `unit`, `group` and `order`. Groups declare their title, domains, grid type and order. Set `showUnconfiguredEntities: false` to enable explicit selection. The header reads the device name from `title` in ESPHome's initial SSE `ping` event, populated from `friendly_name` or the node name; `deviceName` can override it.
+The declarative configuration lives in `web/src/dashboard-config.js` and is bundled locally. Each entity can be configured by its normalized identifier (`name_id`, falling back to `id`) with `visible`, `label`, `description`, `group` and `order`. Groups declare their title, domains, grid type and order. Set `showUnconfiguredEntities: false` to enable explicit selection. The header reads the device name from `title` in ESPHome's initial SSE `ping` event, populated from `friendly_name` or the node name; `deviceName` can override it.
 
 ## Next deliverable
 
