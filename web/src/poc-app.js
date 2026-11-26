@@ -38,43 +38,15 @@ class ESPHomeWebUI extends HTMLElement {
           <div id="binary-sensor-grid" class="sensor-grid"></div>
         </section>
 
-        <section class="section">
+        <section id="actuators-section" class="section" hidden>
           <div class="section-heading">
             <div>
               <p class="eyebrow">ACTUADORES</p>
               <h2>Controles</h2>
             </div>
+            <span class="section-note">Acciones disponibles en el dispositivo</span>
           </div>
-          <article class="card control-card">
-            <div class="control-copy">
-              <div class="control-icon">◉</div>
-              <div>
-                <h3>Interruptor demo</h3>
-                <p id="switch-state" class="muted">Esperando estado…</p>
-              </div>
-            </div>
-            <button id="switch-action" class="button secondary" type="button" disabled>
-              Cargando…
-            </button>
-          </article>
-
-          <article class="card light-card">
-            <div class="light-heading">
-              <div>
-                <h3>Luz RGB demo</h3>
-                <p id="light-state" class="muted">Esperando estado…</p>
-              </div>
-              <span id="light-preview" class="light-preview"></span>
-            </div>
-            <div class="light-controls">
-              <label class="color-control">
-                <span>Color</span>
-                <input id="light-color" type="color" value="#ffffff" aria-label="Elegir color de la luz">
-              </label>
-              <button id="light-apply" class="button primary" type="button">Aplicar color</button>
-              <button id="light-off" class="button secondary" type="button">Apagar</button>
-            </div>
-          </article>
+          <div id="actuators-grid" class="actuators-grid"></div>
         </section>
 
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
@@ -106,6 +78,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._logStatus = this.querySelector("#log-status");
     this._sensorCards = new Map();
     this._binarySensorCards = new Map();
+    this._actuatorCards = new Map();
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
       if (type === "added" || type === "updated") this._renderEntity(entity);
@@ -115,34 +88,6 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _bindControls() {
-    this.querySelector("#switch-action").addEventListener("click", async () => {
-      const button = this.querySelector("#switch-action");
-      const isOn = button.dataset.state === "on";
-      await this._sendEntity(
-        ENTITY_IDS.switch,
-        isOn ? "turn_off" : "turn_on",
-      );
-    });
-
-    this.querySelector("#light-apply").addEventListener("click", async () => {
-      const hex = this.querySelector("#light-color").value;
-      const red = Number.parseInt(hex.slice(1, 3), 16);
-      const green = Number.parseInt(hex.slice(3, 5), 16);
-      const blue = Number.parseInt(hex.slice(5, 7), 16);
-      const params = new URLSearchParams({
-        r: String(red),
-        g: String(green),
-        b: String(blue),
-        brightness: "255",
-        transition: "0.3",
-      });
-      await this._sendEntity(ENTITY_IDS.light, "turn_on", params);
-    });
-
-    this.querySelector("#light-off").addEventListener("click", async () => {
-      await this._sendEntity(ENTITY_IDS.light, "turn_off");
-    });
-
     this.querySelector("#logs-clear").addEventListener("click", () => {
       this._logs.replaceChildren();
       this._logCount.textContent = "0";
@@ -192,27 +137,8 @@ class ESPHomeWebUI extends HTMLElement {
   _renderEntity(entity) {
     if (entity.domain === "sensor") { this._upsertDomainCard(entity, "sensor"); return; }
     if (entity.domain === "binary_sensor") { this._upsertDomainCard(entity, "binary_sensor"); return; }
-
-    if (entity.id === ENTITY_IDS.switch) {
-      const isOn = entity.state === true || entity.state === "ON";
-      const button = this.querySelector("#switch-action");
-      button.disabled = false;
-      button.dataset.state = isOn ? "on" : "off";
-      button.textContent = isOn ? "Apagar" : "Encender";
-      this.querySelector("#switch-state").textContent = isOn ? "Encendido" : "Apagado";
-      return;
-    }
-
-    if (entity.id === ENTITY_IDS.light) {
-      const isOn = entity.state === "ON";
-      this.querySelector("#light-state").textContent = isOn ? "Encendida" : "Apagada";
-      const color = entity.attributes.color;
-      if (color) {
-        const toHex = (value) => Math.round(value).toString(16).padStart(2, "0");
-        const hex = `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
-        this.querySelector("#light-color").value = hex;
-        this.querySelector("#light-preview").style.backgroundColor = hex;
-      }
+    if (["switch", "button", "light"].includes(entity.domain)) {
+      this._upsertActuatorCard(entity);
     }
   }
 
@@ -230,6 +156,24 @@ class ESPHomeWebUI extends HTMLElement {
     else updateSensorCard(card, entity);
     section.hidden = false;
   }
+  _upsertActuatorCard(entity) {
+    const grid = this.querySelector("#actuators-grid");
+    const section = this.querySelector("#actuators-section");
+    let card = this._actuatorCards.get(entity.id);
+    const onCommand = (entityId, action, params) => this._sendEntity(entityId, action, params);
+    if (!card) {
+      if (entity.domain === "switch") card = createSwitchCard(entity, onCommand);
+      else if (entity.domain === "button") card = createButtonCard(entity, onCommand);
+      else if (entity.domain === "light") card = createLightCard(entity, onCommand);
+      if (!card) return;
+      this._actuatorCards.set(entity.id, card);
+      grid.append(card);
+    } else if (entity.domain === "switch") updateSwitchCard(card, entity);
+    else if (entity.domain === "button") updateButtonCard(card, entity);
+    else if (entity.domain === "light") updateLightCard(card, entity);
+    section.hidden = false;
+  }
+
   async _sendEntity(entityId, action, params = new URLSearchParams()) {
     this._showFeedback("Enviando orden…");
     try {

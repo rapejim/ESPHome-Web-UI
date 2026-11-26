@@ -10,6 +10,9 @@ const sourceFiles = [
   "web/src/entity-registry.js",
   "web/src/sensor-component.js",
   "web/src/binary-sensor-component.js",
+  "web/src/switch-component.js",
+  "web/src/button-component.js",
+  "web/src/light-component.js",
   "web/src/poc-app.js",
 ];
 const outputFile = path.join(root, "web/poc.js");

@@ -48,7 +48,7 @@ Initial order:
 
 1. Sensor and binary sensor: read-only.
 2. Switch and button: basic actions.
-3. Light: on/off, brightness and color when supported by the entity type.
+3. Light: on/off, brightness and color when ESPHome-reported state confirms those capabilities are available.
 4. Fan and climate: later phases, after validating their models and endpoints.
 
 Components must not open SSE connections or build HTTP requests directly; they use the client and registry.
@@ -108,4 +108,4 @@ Generated files must be reproducible from source through a documented command. C
 
 ## Next deliverable
 
-The first implementation deliverable will extract SSE/REST transport from the PoC into an independent client, add automated tests and keep the demo UI working without visible changes. The entity registry and first generic components will follow.
+The next deliverable will address dashboard configuration, explicit entity selection, groups and visual ordering.

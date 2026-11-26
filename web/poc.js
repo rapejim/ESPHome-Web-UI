@@ -199,6 +199,236 @@ function createBinarySensorCard(entity){const card=document.createElement("artic
 function updateBinarySensorCard(card,entity){const v=getBinarySensorPresentation(entity);card.classList.toggle("binary-active",v.active===true);card.classList.toggle("binary-inactive",v.active===false);card.querySelector(".card-label").textContent=v.name;card.querySelector(".sensor-value").textContent=v.value;card.querySelector(".sensor-unit").textContent=v.description;}
 return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard};});
 
+(function(root,factory){
+  const api=factory();
+  if(typeof module==="object"&&module.exports)module.exports=api;
+  if(root)Object.assign(root,api);
+})(typeof globalThis!=="undefined"?globalThis:this,function(){
+  "use strict";
+
+  function getSwitchPresentation(entity){
+    const raw=entity.state;
+    const isOn=raw===true||raw===1||raw==="ON"||raw==="on"||raw==="true";
+    const isOff=raw===false||raw===0||raw==="OFF"||raw==="off"||raw==="false";
+    return {
+      name:entity.name||entity.objectId||"Interruptor",
+      isOn:isOn?true:isOff?false:null,
+      state:isOn?"Encendido":isOff?"Apagado":"Desconocido",
+      action:isOn?"turn_off":"turn_on",
+      actionLabel:isOn?"Apagar":"Encender"
+    };
+  }
+
+  function createSwitchCard(entity,onCommand){
+    const card=document.createElement("article");
+    card.className="card control-card actuator-card";
+    card.dataset.entityId=entity.id;
+    card.innerHTML='<div class="control-copy"><div class="control-icon" aria-hidden="true">◉</div><div><h3 class="actuator-name"></h3><p class="muted actuator-state"></p></div></div><button class="button secondary actuator-action" type="button"></button>';
+    card.querySelector(".actuator-action").addEventListener("click",()=>{
+      const action=card.dataset.action||"turn_on";
+      onCommand(entity.id,action);
+    });
+    updateSwitchCard(card,entity);
+    return card;
+  }
+
+  function updateSwitchCard(card,entity){
+    const view=getSwitchPresentation(entity);
+    card.querySelector(".actuator-name").textContent=view.name;
+    card.querySelector(".actuator-state").textContent=view.state;
+    const button=card.querySelector(".actuator-action");
+    button.textContent=view.actionLabel;
+    button.disabled=false;
+    card.dataset.action=view.action;
+  }
+
+  return {getSwitchPresentation,createSwitchCard,updateSwitchCard};
+});
+
+(function(root,factory){
+  const api=factory();
+  if(typeof module==="object"&&module.exports)module.exports=api;
+  if(root)Object.assign(root,api);
+})(typeof globalThis!=="undefined"?globalThis:this,function(){
+  "use strict";
+
+  function getButtonPresentation(entity){
+    return {name:entity.name||entity.objectId||"Botón",description:entity.attributes?.device_class||"Acción"};
+  }
+
+  function createButtonCard(entity,onPress){
+    const card=document.createElement("article");
+    card.className="card control-card actuator-card";
+    card.dataset.entityId=entity.id;
+    card.innerHTML='<div class="control-copy"><div class="control-icon" aria-hidden="true">↯</div><div><h3 class="actuator-name"></h3><p class="muted actuator-description"></p></div></div><button class="button primary actuator-action" type="button">Pulsar</button>';
+    card.querySelector(".actuator-action").addEventListener("click",()=>onPress(entity.id,"press"));
+    updateButtonCard(card,entity);
+    return card;
+  }
+
+  function updateButtonCard(card,entity){
+    const view=getButtonPresentation(entity);
+    card.querySelector(".actuator-name").textContent=view.name;
+    card.querySelector(".actuator-description").textContent=view.description;
+  }
+
+  return {getButtonPresentation,createButtonCard,updateButtonCard};
+});
+
+(function(root,factory){
+  const api=factory();
+  if(typeof module==="object"&&module.exports)module.exports=api;
+  if(root)Object.assign(root,api);
+})(typeof globalThis!=="undefined"?globalThis:this,function(){
+  "use strict";
+
+  function getLightPresentation(entity){
+    const attributes=entity.attributes||{};
+    const color=attributes.color;
+    const supportsColor=!!color&&["r","g","b"].every((key)=>Number.isFinite(Number(color[key])));
+    const brightness=Number(attributes.brightness);
+    const supportsBrightness=attributes.brightness!==undefined&&Number.isFinite(brightness);
+    const isOn=entity.state==="ON"||entity.state===true;
+    return {
+      name:entity.name||entity.objectId||"Luz",
+      isOn,
+      state:isOn?"Encendida":"Apagada",
+      supportsColor,
+      supportsBrightness,
+      brightness:supportsBrightness?Math.max(0,Math.min(255,brightness)):255,
+      color:supportsColor?color:null
+    };
+  }
+
+  function channelHex(value){
+    return Math.round(Math.max(0,Math.min(255,Number(value)))).toString(16).padStart(2,"0");
+  }
+
+  function buildLightCommandParams({color="#ffffff",brightness=255,supportsColor=true,supportsBrightness=true}={}){
+    const params=new URLSearchParams({transition:"0.3"});
+    if(supportsBrightness)params.set("brightness",String(Math.max(0,Math.min(255,Math.round(Number(brightness))))));
+    if(supportsColor){
+      const hex=String(color).replace(/^#/,"");
+      if(/^[0-9a-f]{6}$/i.test(hex)){
+        params.set("r",String(Number.parseInt(hex.slice(0,2),16)));
+        params.set("g",String(Number.parseInt(hex.slice(2,4),16)));
+        params.set("b",String(Number.parseInt(hex.slice(4,6),16)));
+      }
+    }
+    return params;
+  }
+
+  function createLightCard(entity,onCommand){
+    const card=document.createElement("article");
+    card.className="card light-card actuator-card";
+    card.dataset.entityId=entity.id;
+    card.innerHTML='<div class="light-heading"><div><h3 class="actuator-name"></h3><p class="muted actuator-state"></p></div><span class="light-preview"></span></div><div class="light-controls"><label class="color-control light-color-control" hidden><span>Color</span><input class="light-color" type="color" value="#ffffff" aria-label="Elegir color"></label><label class="brightness-control" hidden><span>Brillo</span><input class="light-brightness" type="range" min="0" max="255" step="1" value="255"><output class="brightness-value">100 %</output></label><div class="actuator-actions"><button class="button secondary light-on" type="button">Encender</button><button class="button secondary light-off" type="button">Apagar</button></div></div>';
+    const colorInput=card.querySelector(".light-color");
+    const brightnessInput=card.querySelector(".light-brightness");
+
+    const currentSettings=()=>({
+      color:colorInput.value,
+      brightness:Number(brightnessInput.value),
+      supportsColor:!card.querySelector(".light-color-control").hidden,
+      supportsBrightness:!card.querySelector(".brightness-control").hidden
+    });
+
+    const sendSettings=async()=>{
+      if(card._lightTimer)clearTimeout(card._lightTimer);
+      card._lightTimer=null;
+      if(!card._lightDirty)return;
+      card._lightDirty=false;
+      const settings=currentSettings();
+      if(card._lightDraftTimer)clearTimeout(card._lightDraftTimer);
+      card._lightDraft={...settings,expiresAt:Date.now()+3000};
+      card._lightDraftTimer=setTimeout(()=>{
+        card._lightDraft=null;
+        if(card._lastEntity)updateLightCard(card,card._lastEntity);
+      },3100);
+      await onCommand(entity.id,"turn_on",buildLightCommandParams(settings));
+    };
+
+    const scheduleSettings=(delay)=>{
+      card._lightDirty=true;
+      if(card._lightTimer)clearTimeout(card._lightTimer);
+      card._lightTimer=setTimeout(()=>{sendSettings();},delay);
+    };
+
+    brightnessInput.addEventListener("input",()=>{
+      card.querySelector(".brightness-value").textContent=`${Math.round(Number(brightnessInput.value)/255*100)} %`;
+    });
+    brightnessInput.addEventListener("change",()=>scheduleSettings(100));
+    colorInput.addEventListener("input",()=>{
+      card.querySelector(".light-preview").style.backgroundColor=colorInput.value;
+    });
+    colorInput.addEventListener("change",()=>scheduleSettings(80));
+
+    card.querySelector(".light-on").addEventListener("click",async()=>{
+      if(card._lightDirty)await sendSettings();
+      else await onCommand(entity.id,"turn_on",buildLightCommandParams(currentSettings()));
+    });
+    card.querySelector(".light-off").addEventListener("click",async()=>{
+      if(card._lightDirty)await sendSettings();
+      await onCommand(entity.id,"turn_off");
+    });
+
+    updateLightCard(card,entity);
+    return card;
+  }
+
+  function updateLightCard(card,entity){
+    card._lastEntity=entity;
+    const view=getLightPresentation(entity);
+    card.querySelector(".actuator-name").textContent=view.name;
+    card.querySelector(".actuator-state").textContent=view.state;
+    card.querySelector(".light-on").disabled=view.isOn;
+    card.querySelector(".light-off").disabled=!view.isOn;
+    const colorControl=card.querySelector(".light-color-control");
+    const brightnessControl=card.querySelector(".brightness-control");
+    colorControl.hidden=!view.supportsColor;
+    brightnessControl.hidden=!view.supportsBrightness;
+
+    let draft=card._lightDraft;
+    if(draft&&Date.now()>=draft.expiresAt){
+      card._lightDraft=null;
+      draft=null;
+    }
+    if(draft){
+      const colorMatches=!draft.supportsColor||(
+        view.supportsColor&&
+        Number(view.color.r)===Number.parseInt(draft.color.slice(1,3),16)&&
+        Number(view.color.g)===Number.parseInt(draft.color.slice(3,5),16)&&
+        Number(view.color.b)===Number.parseInt(draft.color.slice(5,7),16)
+      );
+      const brightnessMatches=!draft.supportsBrightness||(
+        view.supportsBrightness&&view.brightness===draft.brightness
+      );
+      if(colorMatches&&brightnessMatches){
+        card._lightDraft=null;
+        if(card._lightDraftTimer)clearTimeout(card._lightDraftTimer);
+        draft=null;
+      }
+    }
+
+    if(view.supportsColor){
+      const hex=draft?.supportsColor?draft.color:`#${channelHex(view.color.r)}${channelHex(view.color.g)}${channelHex(view.color.b)}`;
+      const input=card.querySelector(".light-color");
+      if(!draft&&document.activeElement!==input)input.value=hex;
+      if(draft)input.value=hex;
+      card.querySelector(".light-preview").style.backgroundColor=hex;
+    }
+    if(view.supportsBrightness){
+      const brightness=draft?.supportsBrightness?draft.brightness:view.brightness;
+      const input=card.querySelector(".light-brightness");
+      if(!draft&&document.activeElement!==input)input.value=String(brightness);
+      if(draft)input.value=String(brightness);
+      card.querySelector(".brightness-value").textContent=`${Math.round(brightness/255*100)} %`;
+    }
+  }
+
+  return {getLightPresentation,buildLightCommandParams,createLightCard,updateLightCard};
+});
+
 const ENTITY_IDS = {
   switch: "switch/Interruptor demo",
   light: "light/Luz RGB demo",
@@ -239,43 +469,15 @@ class ESPHomeWebUI extends HTMLElement {
           <div id="binary-sensor-grid" class="sensor-grid"></div>
         </section>
 
-        <section class="section">
+        <section id="actuators-section" class="section" hidden>
           <div class="section-heading">
             <div>
               <p class="eyebrow">ACTUADORES</p>
               <h2>Controles</h2>
             </div>
+            <span class="section-note">Acciones disponibles en el dispositivo</span>
           </div>
-          <article class="card control-card">
-            <div class="control-copy">
-              <div class="control-icon">◉</div>
-              <div>
-                <h3>Interruptor demo</h3>
-                <p id="switch-state" class="muted">Esperando estado…</p>
-              </div>
-            </div>
-            <button id="switch-action" class="button secondary" type="button" disabled>
-              Cargando…
-            </button>
-          </article>
-
-          <article class="card light-card">
-            <div class="light-heading">
-              <div>
-                <h3>Luz RGB demo</h3>
-                <p id="light-state" class="muted">Esperando estado…</p>
-              </div>
-              <span id="light-preview" class="light-preview"></span>
-            </div>
-            <div class="light-controls">
-              <label class="color-control">
-                <span>Color</span>
-                <input id="light-color" type="color" value="#ffffff" aria-label="Elegir color de la luz">
-              </label>
-              <button id="light-apply" class="button primary" type="button">Aplicar color</button>
-              <button id="light-off" class="button secondary" type="button">Apagar</button>
-            </div>
-          </article>
+          <div id="actuators-grid" class="actuators-grid"></div>
         </section>
 
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
@@ -296,7 +498,7 @@ class ESPHomeWebUI extends HTMLElement {
           </details>
         </section>
 
-        <footer>ESPHome Web UI · <span id="app-version">v0.2.0</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.3.0</span> · Sin servicios externos</footer>
       </main>
     `;
 
@@ -307,6 +509,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._logStatus = this.querySelector("#log-status");
     this._sensorCards = new Map();
     this._binarySensorCards = new Map();
+    this._actuatorCards = new Map();
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
       if (type === "added" || type === "updated") this._renderEntity(entity);
@@ -316,34 +519,6 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _bindControls() {
-    this.querySelector("#switch-action").addEventListener("click", async () => {
-      const button = this.querySelector("#switch-action");
-      const isOn = button.dataset.state === "on";
-      await this._sendEntity(
-        ENTITY_IDS.switch,
-        isOn ? "turn_off" : "turn_on",
-      );
-    });
-
-    this.querySelector("#light-apply").addEventListener("click", async () => {
-      const hex = this.querySelector("#light-color").value;
-      const red = Number.parseInt(hex.slice(1, 3), 16);
-      const green = Number.parseInt(hex.slice(3, 5), 16);
-      const blue = Number.parseInt(hex.slice(5, 7), 16);
-      const params = new URLSearchParams({
-        r: String(red),
-        g: String(green),
-        b: String(blue),
-        brightness: "255",
-        transition: "0.3",
-      });
-      await this._sendEntity(ENTITY_IDS.light, "turn_on", params);
-    });
-
-    this.querySelector("#light-off").addEventListener("click", async () => {
-      await this._sendEntity(ENTITY_IDS.light, "turn_off");
-    });
-
     this.querySelector("#logs-clear").addEventListener("click", () => {
       this._logs.replaceChildren();
       this._logCount.textContent = "0";
@@ -393,27 +568,8 @@ class ESPHomeWebUI extends HTMLElement {
   _renderEntity(entity) {
     if (entity.domain === "sensor") { this._upsertDomainCard(entity, "sensor"); return; }
     if (entity.domain === "binary_sensor") { this._upsertDomainCard(entity, "binary_sensor"); return; }
-
-    if (entity.id === ENTITY_IDS.switch) {
-      const isOn = entity.state === true || entity.state === "ON";
-      const button = this.querySelector("#switch-action");
-      button.disabled = false;
-      button.dataset.state = isOn ? "on" : "off";
-      button.textContent = isOn ? "Apagar" : "Encender";
-      this.querySelector("#switch-state").textContent = isOn ? "Encendido" : "Apagado";
-      return;
-    }
-
-    if (entity.id === ENTITY_IDS.light) {
-      const isOn = entity.state === "ON";
-      this.querySelector("#light-state").textContent = isOn ? "Encendida" : "Apagada";
-      const color = entity.attributes.color;
-      if (color) {
-        const toHex = (value) => Math.round(value).toString(16).padStart(2, "0");
-        const hex = `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
-        this.querySelector("#light-color").value = hex;
-        this.querySelector("#light-preview").style.backgroundColor = hex;
-      }
+    if (["switch", "button", "light"].includes(entity.domain)) {
+      this._upsertActuatorCard(entity);
     }
   }
 
@@ -431,6 +587,24 @@ class ESPHomeWebUI extends HTMLElement {
     else updateSensorCard(card, entity);
     section.hidden = false;
   }
+  _upsertActuatorCard(entity) {
+    const grid = this.querySelector("#actuators-grid");
+    const section = this.querySelector("#actuators-section");
+    let card = this._actuatorCards.get(entity.id);
+    const onCommand = (entityId, action, params) => this._sendEntity(entityId, action, params);
+    if (!card) {
+      if (entity.domain === "switch") card = createSwitchCard(entity, onCommand);
+      else if (entity.domain === "button") card = createButtonCard(entity, onCommand);
+      else if (entity.domain === "light") card = createLightCard(entity, onCommand);
+      if (!card) return;
+      this._actuatorCards.set(entity.id, card);
+      grid.append(card);
+    } else if (entity.domain === "switch") updateSwitchCard(card, entity);
+    else if (entity.domain === "button") updateButtonCard(card, entity);
+    else if (entity.domain === "light") updateLightCard(card, entity);
+    section.hidden = false;
+  }
+
   async _sendEntity(entityId, action, params = new URLSearchParams()) {
     this._showFeedback("Enviando orden…");
     try {
