@@ -10,10 +10,10 @@
   class ESPHomeClient {
     constructor(options = {}) {
       this.EventSourceClass = options.EventSourceClass || globalThis.EventSource;
-      this.fetchImpl = options.fetchImpl || globalThis.fetch;
+      this.fetchImpl = options.fetchImpl || globalThis.fetch.bind(globalThis);
       this.now = options.now || Date.now;
-      this.setIntervalFn = options.setIntervalFn || globalThis.setInterval;
-      this.clearIntervalFn = options.clearIntervalFn || globalThis.clearInterval;
+      this.setIntervalFn = options.setIntervalFn || globalThis.setInterval.bind(globalThis);
+      this.clearIntervalFn = options.clearIntervalFn || globalThis.clearInterval.bind(globalThis);
       this.heartbeatTimeout = options.heartbeatTimeout ?? 25000;
       this.heartbeatInterval = options.heartbeatInterval ?? 5000;
       this.listeners = new Map();
