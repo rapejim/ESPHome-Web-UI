@@ -339,6 +339,7 @@ return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard
       if(!card._lightDirty)return;
       card._lightDirty=false;
       const settings=currentSettings();
+      if(card._lightDraftTimer)clearTimeout(card._lightDraftTimer);
       card._lightDraft={...settings,expiresAt:Date.now()+3000};
       card._lightDraftTimer=setTimeout(()=>{
         card._lightDraft=null;
@@ -355,7 +356,6 @@ return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard
 
     brightnessInput.addEventListener("input",()=>{
       card.querySelector(".brightness-value").textContent=`${Math.round(Number(brightnessInput.value)/255*100)} %`;
-      scheduleSettings(350);
     });
     brightnessInput.addEventListener("change",()=>scheduleSettings(100));
     colorInput.addEventListener("input",()=>{
