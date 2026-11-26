@@ -205,7 +205,7 @@
   // Los identificadores usan name_id y, como alternativa, id (por ejemplo: "sensor/Temperatura").
   const DASHBOARD_CONFIG = {
     deviceName: "",
-    subtitle: "Panel de control independiente",
+    subtitle: "",
     showUnconfiguredEntities: true,
     groups: [
       {id:"readings",title:"Estado ambiental",domains:["sensor"],layout:"sensors",order:10},
@@ -478,11 +478,6 @@ return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard
   return {getLightPresentation,buildLightCommandParams,createLightCard,updateLightCard};
 });
 
-const ENTITY_IDS = {
-  switch: "switch/Interruptor demo",
-  light: "light/Luz RGB demo",
-};
-
 class ESPHomeWebUI extends HTMLElement {
   connectedCallback() {
     if (this.dataset.initialized === "true") return;
@@ -561,7 +556,7 @@ class ESPHomeWebUI extends HTMLElement {
       const configuredName = DASHBOARD_CONFIG.deviceName.trim();
       const deviceName = configuredName || (typeof config.title === "string" ? config.title.trim() : "");
       if (deviceName) this.querySelector("#device-title").textContent = deviceName;
-      const subtitle = DASHBOARD_CONFIG.subtitle || (typeof config.comment === "string" ? config.comment.trim() : "");
+      const subtitle = DASHBOARD_CONFIG.subtitle || (typeof config.comment === "string" ? config.comment.trim() : "") || "Panel de control independiente";
       if (subtitle) this.querySelector("#device-subtitle").textContent = subtitle;
     });
     this._client.on("log", (message) => this._appendLog(message));

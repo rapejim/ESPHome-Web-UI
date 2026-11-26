@@ -9,7 +9,7 @@
   // Los identificadores usan name_id y, como alternativa, id (por ejemplo: "sensor/Temperatura").
   const DASHBOARD_CONFIG = {
     deviceName: "",
-    subtitle: "Panel de control independiente",
+    subtitle: "",
     showUnconfiguredEntities: true,
     groups: [
       {id:"readings",title:"Estado ambiental",domains:["sensor"],layout:"sensors",order:10},
