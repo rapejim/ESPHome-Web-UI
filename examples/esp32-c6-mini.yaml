@@ -33,6 +33,8 @@ web_server:
     username: admin
     password: "change-me-before-deploy"
 
+dashboard_storage: {}
+
 sensor:
   - platform: template
     name: "Temperatura demo"
