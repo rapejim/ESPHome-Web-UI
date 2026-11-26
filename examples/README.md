@@ -1,29 +1,31 @@
-# ESP32 proof of concept
+# Prueba de concepto para ESP32
 
-The PoC includes two board-specific configurations that share the same local frontend (web/poc.js and web/poc.css). Both examples use virtual sensors, a virtual switch and a virtual RGB light, so no external peripherals are required.
+La PoC incluye dos configuraciones de placa que comparten el mismo frontend local (`web/poc.js` y `web/poc.css`). Ambos ejemplos utilizan sensores virtuales, un interruptor virtual y una luz RGB virtual, por lo que no necesitan periféricos externos.
 
-## Available board examples
+[English version](README.en.md)
 
-| Example | Target | Framework |
+## Ejemplos disponibles
+
+| Archivo | Placa objetivo | Framework |
 | --- | --- | --- |
-| esp32-basic.yaml | ESP32 DevKit (classic ESP32) | Arduino |
-| esp32-c6-mini.yaml | ESP32-C6 Super Mini (using the ESP32-C6 DevKitC-1 board definition) | ESP-IDF |
+| `esp32-basic.yaml` | ESP32 DevKit (ESP32 clásico) | Arduino |
+| `esp32-c6-mini.yaml` | ESP32-C6 Super Mini (definición de placa ESP32-C6 DevKitC-1) | ESP-IDF |
 
-**ESP32-C6 note:** the C6 example targets the commonly sold ESP32-C6 Super Mini. It uses esp32-c6-devkitc-1 as the ESPHome/PlatformIO board definition and the required ESP-IDF framework. If your board is a different C6 Mini variant, check its exact model before flashing.
+**Nota sobre ESP32-C6:** el ejemplo está preparado para la variante habitual ESP32-C6 Super Mini y utiliza `esp32-c6-devkitc-1` como definición de placa de ESPHome/PlatformIO, junto con ESP-IDF. Si tu placa es otra variante C6 Mini, comprueba el modelo exacto antes de flashear.
 
-## Before compiling or flashing
+## Antes de compilar o flashear
 
-For the example you intend to use:
+Edita el YAML del ejemplo que vayas a utilizar:
 
-1. Replace REPLACE_WITH_WIFI_SSID and REPLACE_WITH_WIFI_PASSWORD with your Wi-Fi credentials.
-2. Change the web interface username and password. The committed values are demonstration placeholders and must not be used on a real network.
-3. Keep the device on a trusted local network; this PoC uses HTTP Digest authentication but does not provide HTTPS.
+1. Sustituye `REPLACE_WITH_WIFI_SSID` y `REPLACE_WITH_WIFI_PASSWORD` por las credenciales de tu Wi-Fi.
+2. Cambia el usuario y la contraseña de la interfaz web. Los valores incluidos en el repositorio son solo marcadores de ejemplo y no deben utilizarse en una red real.
+3. Mantén el dispositivo en una red local de confianza. Esta PoC utiliza autenticación HTTP Digest, pero no proporciona HTTPS.
 
-## Build with ESPHome
+## Compilar con ESPHome
 
-Run the commands for your board from the repository root.
+Ejecuta los comandos correspondientes desde la raíz del repositorio.
 
-Classic ESP32:
+ESP32 clásico:
 
 ```bash
 esphome config examples/esp32-basic.yaml
@@ -39,26 +41,26 @@ esphome compile examples/esp32-c6-mini.yaml
 esphome run examples/esp32-c6-mini.yaml
 ```
 
-Connect the board over USB for the first flash. After it joins Wi-Fi, open its IP address in a browser; the browser will ask for the web server credentials.
+Conecta la placa por USB para el primer flasheo. Cuando se conecte a la Wi-Fi, abre su dirección IP en el navegador; se solicitarán las credenciales del servidor web.
 
-## What to test
+## Qué comprobar
 
-- Temperature and humidity update every five seconds.
-- The switch can be turned on and off.
-- The RGB color picker sends red, green and blue values to the light.
-- State changes arrive through the /events Server-Sent Events connection.
-- All UI assets are served by the ESP32. The page does not need a CDN or external internet access.
+- La temperatura y la humedad se actualizan cada cinco segundos.
+- El interruptor se puede encender y apagar.
+- El selector de color envía los valores rojo, verde y azul a la luz.
+- Los cambios de estado y los mensajes de log llegan mediante Server-Sent Events a través de `/events`.
+- Todos los recursos de la interfaz se sirven desde el ESP32. El navegador no necesita CDN ni acceso a Internet.
 
-## Implementation notes
+## Notas de implementación
 
-ESPHome's version 2 web server builds a small HTML shell containing an esp-app element. With empty js_url and js_include, the device serves our module at /0.js; our module defines the esp-app custom element and supplies the complete interface. css_include serves the stylesheet at /0.css.
+El servidor web versión 2 de ESPHome genera una estructura HTML mínima que contiene un elemento `<esp-app>`. Con `js_url: ""` y `js_include`, el dispositivo sirve nuestro módulo en `/0.js`; el módulo define el elemento personalizado `esp-app` y genera toda la interfaz. `css_include` sirve la hoja de estilos en `/0.css`.
 
-The examples deliberately do not set local: true: that option embeds ESPHome's bundled frontend HTML, whereas this PoC uses the configurable HTML shell and local include routes. Empty js_url and css_url values prevent external asset requests.
+Los ejemplos no configuran `local: true`: esa opción incorpora el frontend incluido en ESPHome, mientras que esta PoC utiliza la estructura HTML configurable y las rutas locales para los recursos. Los valores vacíos de `js_url` y `css_url` evitan solicitudes a recursos externos.
 
-The PoC reuses ESPHome's existing API:
+La PoC reutiliza las API existentes de ESPHome:
 
-- GET /events: initial entity states and real-time state updates.
-- POST /switch/{entity}/turn_on and turn_off: switch control.
-- POST /light/{entity}/turn_on?r=...&g=...&b=...: RGB light control.
+- `GET /events`: estados iniciales, actualizaciones en tiempo real y mensajes de log.
+- `POST /switch/{entity}/turn_on` y `turn_off`: control del interruptor.
+- `POST /light/{entity}/turn_on?r=...&g=...&b=...`: control de la luz RGB.
 
-The frontend reads name_id when present and falls back to id, accommodating ESPHome's entity identifier transition.
+El frontend utiliza `name_id` cuando está disponible y recurre a `id` como alternativa, para mantener compatibilidad con el cambio de identificadores de entidades de ESPHome.
