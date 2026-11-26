@@ -25,7 +25,8 @@ La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobad
 - Fase 5: registro normalizado de entidades.
 - Fase 6: componentes genéricos para sensores y sensores binarios, con versión visible en la interfaz.
 - Fase 7: componentes genéricos para `switch`, `button` y `light`.
-- Fase 8 (en curso): configuración de dashboards, selección de entidades, grupos, etiquetas y orden visual.
+- Fase 8: configuración declarativa y persistencia de dashboards en NVS.
+- Fase 9 (en curso): editor visual del dashboard desde el navegador, sin recompilar ni reflashear.
 
 Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.
 
