@@ -46,6 +46,10 @@ void DashboardStorage::handleBody(AsyncWebServerRequest *request, uint8_t *data,
                                   size_t index, size_t total) {
   if (index == 0) {
     this->body_request_ = request;
+    if (this->save_pending_) {
+      this->body_invalid_ = true;
+      return;
+    }
     this->body_length_ = 0;
     this->body_invalid_ = total == 0 || total > MAX_CONFIG_SIZE;
     this->body_checksum_ = 2166136261UL;
@@ -67,6 +71,11 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
       return;
     }
     request->send(200, "application/json", this->stored_.json);
+    return;
+  }
+
+  if (this->save_pending_) {
+    request->send(503, "application/json", "{\\"error\\":\\"configuration save in progress\\"}");
     return;
   }
 

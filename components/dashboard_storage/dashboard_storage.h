@@ -39,6 +39,7 @@ class DashboardStorage : public Component, public AsyncWebHandler {
   uint32_t body_checksum_{2166136261UL};
   bool body_invalid_{false};
   bool has_config_{false};
+  bool save_pending_{false};
 };
 
 }  // namespace esphome::dashboard_storage
