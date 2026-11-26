@@ -65,21 +65,21 @@ output:
     id: demo_red
     type: float
     write_action:
-      - lambda: |- 
+      - lambda: |-
           // Demo output: intentionally no hardware and no repetitive logs.
 
   - platform: template
     id: demo_green
     type: float
     write_action:
-      - lambda: |- 
+      - lambda: |-
           // Demo output: intentionally no hardware and no repetitive logs.
 
   - platform: template
     id: demo_blue
     type: float
     write_action:
-      - lambda: |- 
+      - lambda: |-
           // Demo output: intentionally no hardware and no repetitive logs.
 
 light:
