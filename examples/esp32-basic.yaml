@@ -60,6 +60,28 @@ switch:
     turn_off_action:
       - logger.log: "Demo switch turned off"
 
+output:
+  - platform: template
+    id: demo_red
+    type: float
+    write_action:
+      - lambda: |- 
+          // Demo output: intentionally no hardware and no repetitive logs.
+
+  - platform: template
+    id: demo_green
+    type: float
+    write_action:
+      - lambda: |- 
+          // Demo output: intentionally no hardware and no repetitive logs.
+
+  - platform: template
+    id: demo_blue
+    type: float
+    write_action:
+      - lambda: |- 
+          // Demo output: intentionally no hardware and no repetitive logs.
+
 light:
   - platform: rgb
     name: "Luz RGB demo"
