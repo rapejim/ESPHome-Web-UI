@@ -22,8 +22,9 @@ La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobad
 - Fase 2: PoC para ESP32 mediante el servidor web integrado de ESPHome, JavaScript local y CSS local.
 - Fase 3: ejemplo ESP32-C6 Mini y validación funcional en hardware.
 - Fase 4: arquitectura del frontend reutilizable y cliente SSE/REST independiente.
-- Fase 5 (en curso): registro normalizado de entidades y preparación de componentes genéricos.
-- Próximas fases: extraer el cliente SSE/REST, registro de entidades, componentes por dominio, configuración de dashboards y pruebas con más placas.
+- Fase 5: registro normalizado de entidades.
+- Fase 6 (en curso): componentes genéricos para sensores y sensores binarios, con versión visible en la interfaz.
+- Próximas fases: componentes genéricos para actuadores, configuración de dashboards, grupos, etiquetas y pruebas con más placas.
 
 Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.
 
@@ -37,7 +38,11 @@ Actualmente hay dos configuraciones, ambas con el mismo frontend:
 - Módulo JavaScript: [web/poc.js](web/poc.js)
 - Hoja de estilos: [web/poc.css](web/poc.css)
 
-La PoC muestra lecturas de temperatura y humedad en tiempo real, un interruptor y una luz RGB. Utiliza el flujo SSE `/events` de ESPHome para recibir estados y mensajes de log, y sus endpoints REST para enviar órdenes.
+La interfaz muestra automáticamente las entidades `sensor` y `binary_sensor` recibidas desde ESPHome, además de los actuadores de demostración (interruptor y luz RGB). Utiliza el flujo SSE `/events` de ESPHome para recibir estados y mensajes de log, y sus endpoints REST para enviar órdenes.
+
+## Versionado
+
+La versión se mantiene en `package.json` siguiendo Semantic Versioning y el build la inserta automáticamente en el pie de página.
 
 ## Principios de desarrollo
 

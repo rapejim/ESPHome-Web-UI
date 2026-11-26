@@ -21,8 +21,10 @@ The proof of concept has been validated on ESP32-C6 Mini hardware. Readings, con
 - Phase 1: repository scaffolding and CI.
 - Phase 2: ESP32 PoC using ESPHome's built-in web server, local JavaScript and local CSS.
 - Phase 3: ESP32-C6 Mini example and functional hardware validation.
-- Phase 4 (in progress): reusable frontend architecture.
-- Upcoming phases: extract the SSE/REST client, entity registry, domain components, dashboard configuration and broader board testing.
+- Phase 4: reusable frontend architecture and independent SSE/REST client.
+- Phase 5: normalized entity registry.
+- Phase 6 (in progress): generic sensor and binary sensor components, with a visible UI version.
+- Upcoming phases: generic actuator components, dashboard configuration, groups, labels and broader board testing.
 
 See the [proposed architecture](docs/architecture.en.md) for the next implementation's layers, decisions and scope.
 
@@ -36,7 +38,11 @@ Two board configurations are currently available, both sharing the same frontend
 - JavaScript module: [web/poc.js](web/poc.js)
 - Stylesheet: [web/poc.css](web/poc.css)
 
-The PoC displays live temperature and humidity readings, a switch and an RGB light. It uses ESPHome's `/events` SSE stream for state updates and log messages, and its REST endpoints to send commands.
+The UI automatically displays `sensor` and `binary_sensor` entities received from ESPHome, alongside the demo actuators (switch and RGB light). It uses ESPHome's `/events` SSE stream for state updates and log messages, and its REST endpoints to send commands.
+
+## Versioning
+
+The version is maintained in `package.json` using Semantic Versioning and injected into the UI footer by the build process.
 
 ## Development principles
 

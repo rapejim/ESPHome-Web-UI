@@ -187,9 +187,19 @@
   return { ESPHomeEntityRegistry };
 });
 
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;if(root)Object.assign(root,api);})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
+function getSensorPresentation(entity){const a=entity.attributes||{};return{name:entity.name||entity.objectId||"Sensor",value:entity.state==null?"—":String(entity.state),unit:a.unit_of_measurement||"",description:a.device_class||"Sensor"};}
+function createSensorCard(entity){const card=document.createElement("article");card.className="card sensor-card";card.dataset.entityId=entity.id;card.innerHTML='<span class="card-label"></span><strong class="sensor-value"></strong><span class="sensor-unit"></span>';updateSensorCard(card,entity);return card;}
+function updateSensorCard(card,entity){const v=getSensorPresentation(entity);card.querySelector(".card-label").textContent=v.name;card.querySelector(".sensor-value").textContent=v.value;card.querySelector(".sensor-unit").textContent=v.unit||v.description;}
+return{getSensorPresentation,createSensorCard,updateSensorCard};});
+
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;if(root)Object.assign(root,api);})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
+function getBinarySensorPresentation(entity){const raw=entity.state;let active=null;if(raw===true||raw===1||["ON","on","true","True"].includes(raw))active=true;if(raw===false||raw===0||["OFF","off","false","False"].includes(raw))active=false;return{name:entity.name||entity.objectId||"Binary sensor",active,value:active===null?"Desconocido":active?"Activo":"Inactivo",description:(entity.attributes||{}).device_class||"Sensor binario"};}
+function createBinarySensorCard(entity){const card=document.createElement("article");card.className="card sensor-card binary-sensor-card";card.dataset.entityId=entity.id;card.innerHTML='<span class="card-label"></span><strong class="sensor-value"></strong><span class="sensor-unit"></span>';updateBinarySensorCard(card,entity);return card;}
+function updateBinarySensorCard(card,entity){const v=getBinarySensorPresentation(entity);card.classList.toggle("binary-active",v.active===true);card.classList.toggle("binary-inactive",v.active===false);card.querySelector(".card-label").textContent=v.name;card.querySelector(".sensor-value").textContent=v.value;card.querySelector(".sensor-unit").textContent=v.description;}
+return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard};});
+
 const ENTITY_IDS = {
-  temperature: "sensor/Temperatura demo",
-  humidity: "sensor/Humedad demo",
   switch: "switch/Interruptor demo",
   light: "light/Luz RGB demo",
 };
@@ -221,18 +231,12 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
             <span class="section-note">Actualización en tiempo real</span>
           </div>
-          <div class="sensor-grid">
-            <article class="card sensor-card">
-              <span class="card-label">Temperatura</span>
-              <strong id="temperature-value" class="sensor-value">—</strong>
-              <span class="sensor-unit">Temperatura ambiente</span>
-            </article>
-            <article class="card sensor-card">
-              <span class="card-label">Humedad</span>
-              <strong id="humidity-value" class="sensor-value">—</strong>
-              <span class="sensor-unit">Humedad relativa</span>
-            </article>
-          </div>
+          <div id="sensor-grid" class="sensor-grid"></div>
+        </section>
+
+        <section id="binary-sensors-section" class="section" hidden>
+          <div class="section-heading"><div><p class="eyebrow">ESTADOS</p><h2>Sensores binarios</h2></div></div>
+          <div id="binary-sensor-grid" class="sensor-grid"></div>
         </section>
 
         <section class="section">
@@ -292,7 +296,7 @@ class ESPHomeWebUI extends HTMLElement {
           </details>
         </section>
 
-        <footer>ESPHome Web UI · PoC · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.2.0</span> · Sin servicios externos</footer>
       </main>
     `;
 
@@ -301,6 +305,8 @@ class ESPHomeWebUI extends HTMLElement {
     this._logs = this.querySelector("#device-logs");
     this._logCount = this.querySelector("#log-count");
     this._logStatus = this.querySelector("#log-status");
+    this._sensorCards = new Map();
+    this._binarySensorCards = new Map();
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
       if (type === "added" || type === "updated") this._renderEntity(entity);
@@ -385,15 +391,8 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _renderEntity(entity) {
-    if (entity.id === ENTITY_IDS.temperature) {
-      this.querySelector("#temperature-value").textContent = entity.state ?? "—";
-      return;
-    }
-
-    if (entity.id === ENTITY_IDS.humidity) {
-      this.querySelector("#humidity-value").textContent = entity.state ?? "—";
-      return;
-    }
+    if (entity.domain === "sensor") { this._upsertDomainCard(entity, "sensor"); return; }
+    if (entity.domain === "binary_sensor") { this._upsertDomainCard(entity, "binary_sensor"); return; }
 
     if (entity.id === ENTITY_IDS.switch) {
       const isOn = entity.state === true || entity.state === "ON";
@@ -418,6 +417,20 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
+  _upsertDomainCard(entity, domain) {
+    const binary = domain === "binary_sensor";
+    const cards = binary ? this._binarySensorCards : this._sensorCards;
+    const grid = this.querySelector(binary ? "#binary-sensor-grid" : "#sensor-grid");
+    const section = binary ? this.querySelector("#binary-sensors-section") : grid.closest(".section");
+    let card = cards.get(entity.id);
+    if (!card) {
+      card = binary ? createBinarySensorCard(entity) : createSensorCard(entity);
+      cards.set(entity.id, card);
+      grid.append(card);
+    } else if (binary) updateBinarySensorCard(card, entity);
+    else updateSensorCard(card, entity);
+    section.hidden = false;
+  }
   async _sendEntity(entityId, action, params = new URLSearchParams()) {
     this._showFeedback("Enviando orden…");
     try {
