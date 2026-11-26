@@ -25,7 +25,7 @@ void DashboardStorage::setup() {
     this->stored_ = StoredConfig{};
   }
 
-  // Register before web_server starts; WebServerBase applies the configured Digest auth.
+  // Register before web_server starts; WebServerBase applies the configured authentication.
   web_server_base::global_web_server_base->add_handler(this);
   ESP_LOGCONFIG(TAG, "Dashboard configuration storage ready (max %u bytes)", MAX_CONFIG_SIZE);
 }
@@ -75,7 +75,7 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
   }
 
   if (this->save_pending_) {
-    request->send(503, "application/json", "{\\"error\\":\\"configuration save in progress\\"}");
+    request->send(503, "application/json", R"({"error":"configuration save in progress"})");
     return;
   }
 
@@ -84,7 +84,17 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
       content_length > MAX_CONFIG_SIZE || content_length != this->body_length_ ||
       this->stored_.json[0] != '{' || this->stored_.json[this->body_length_ - 1] != '}') {
     this->body_request_ = nullptr;
-    request->send(400, "application/json", "{\"error\":\"invalid or oversized configuration\"}");
+    this->save_pending_ = true;
+    this->defer([this]() {
+      if (this->has_config_ && !this->preference_.load(&this->stored_)) {
+        this->stored_ = StoredConfig{};
+        this->has_config_ = false;
+      } else if (!this->has_config_) {
+        this->stored_ = StoredConfig{};
+      }
+      this->save_pending_ = false;
+    });
+    request->send(400, "application/json", R"({"error":"invalid or oversized configuration"})");
     return;
   }
 
@@ -94,17 +104,29 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
   this->stored_.magic = CONFIG_MAGIC;
   this->stored_.length = static_cast<uint16_t>(this->body_length_);
   this->stored_.checksum = this->body_checksum_;
+  this->body_request_ = nullptr;
 
-  if (!changed || this->preference_.save(&this->stored_)) {
-    this->has_config_ = true;
-    this->body_request_ = nullptr;
+  if (!changed) {
     request->send(204);
     return;
   }
 
-  this->body_request_ = nullptr;
-  this->preference_.load(&this->stored_);
-  request->send(500, "application/json", "{\"error\":\"could not persist configuration\"}");
+  // ESPHome's preference queue is shared state: write and sync only on the main loop.
+  this->save_pending_ = true;
+  this->defer([this]() {
+    if (!this->preference_.save(&this->stored_)) {
+      ESP_LOGE(TAG, "Could not queue dashboard configuration");
+      if (this->has_config_) this->preference_.load(&this->stored_);
+      else this->stored_ = StoredConfig{};
+    } else {
+      this->has_config_ = true;
+      if (!global_preferences->sync()) {
+        ESP_LOGW(TAG, "Dashboard configuration queued but NVS sync failed");
+      }
+    }
+    this->save_pending_ = false;
+  });
+  request->send(202, "application/json", R"({"status":"accepted"})");
 }
 
 void DashboardStorage::dump_config() {

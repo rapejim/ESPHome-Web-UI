@@ -43,7 +43,7 @@ La interfaz muestra automáticamente las entidades `sensor`, `binary_sensor`, `s
 
 ## Configuración del dashboard
 
-La configuración inicial se realiza en `web/src/dashboard-config.js` y se incluye en el firmware al generar `web/poc.js`. Permite definir el nombre y subtítulo, grupos, orden de grupos, visibilidad de entidades, etiquetas, unidades, grupo y orden de cada entidad. Para mostrar únicamente una selección explícita, establece `showUnconfiguredEntities: false` y marca con `visible: true` las entidades que quieras incluir. Los identificadores deben coincidir con `name_id` (con fallback a `id`). El nombre del dispositivo se obtiene del evento SSE inicial de ESPHome; `deviceName` permite sobrescribirlo.
+La configuración inicial se realiza en `web/src/dashboard-config.js` y se incluye en el firmware al generar `web/poc.js`. Permite definir el nombre y subtítulo, grupos, orden de grupos, visibilidad de entidades, etiquetas, descripciones complementarias, grupo y orden de cada entidad. Para mostrar únicamente una selección explícita, establece `showUnconfiguredEntities: false` y marca con `visible: true` las entidades que quieras incluir. Los identificadores deben coincidir con `name_id` (con fallback a `id`). El nombre del dispositivo se obtiene del evento SSE inicial de ESPHome; `deviceName` permite sobrescribirlo.
 
 ## Versionado
 
