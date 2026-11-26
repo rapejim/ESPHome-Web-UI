@@ -15,7 +15,7 @@ La PoC incluye dos configuraciones de placa que comparten el mismo frontend loca
 
 ## Antes de compilar o flashear
 
-Edita el YAML del ejemplo que vayas a utilizar:
+Edita el YAML del ejemplo que vayas a utilizar. Conserva la estructura del repositorio: ambos YAML cargan el componente local `dashboard_storage` desde `../components`, por lo que esa carpeta debe estar disponible junto al directorio `examples`:
 
 1. Sustituye `REPLACE_WITH_WIFI_SSID` y `REPLACE_WITH_WIFI_PASSWORD` por las credenciales de tu Wi-Fi.
 2. Cambia el usuario y la contraseña de la interfaz web. Los valores incluidos en el repositorio son solo marcadores de ejemplo y no deben utilizarse en una red real.
@@ -41,6 +41,8 @@ esphome compile examples/esp32-c6-mini.yaml
 esphome run examples/esp32-c6-mini.yaml
 ```
 
+El componente local requiere estos tres ficheros, que deben copiarse manteniendo la estructura `components/dashboard_storage/` si preparas el flasheo fuera del repositorio: `__init__.py`, `dashboard_storage.h` y `dashboard_storage.cpp`.
+
 Conecta la placa por USB para el primer flasheo. Cuando se conecte a la Wi-Fi, abre su dirección IP en el navegador; se solicitarán las credenciales del servidor web.
 
 ## Qué comprobar
@@ -48,7 +50,7 @@ Conecta la placa por USB para el primer flasheo. Cuando se conecte a la Wi-Fi, a
 - La temperatura y la humedad se actualizan cada cinco segundos.
 - El interruptor se puede encender y apagar.
 - El selector de color envía los valores rojo, verde y azul a la luz.
-- Los cambios de estado y los mensajes de log llegan mediante Server-Sent Events a través de `/events`.
+- Los cambios de estado y los mensajes de log llegan mediante Server-Sent Events a través de `/events`. La configuración guardada del dashboard se sirve desde `/dashboard-config` y persiste en las preferencias del ESP32.
 - Todos los recursos de la interfaz se sirven desde el ESP32. El navegador no necesita CDN ni acceso a Internet.
 
 ## Notas de implementación

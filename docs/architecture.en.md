@@ -65,7 +65,7 @@ An installation configuration should progressively declare:
 
 - Device title and description.
 - Visible entities and ordering.
-- Custom labels and units.
+- Custom labels and descriptions.
 - Groups/sections and visual options.
 
 Not every device entity should be assumed visible. Automatic discovery may help, but final selection must be configurable.
@@ -98,17 +98,20 @@ Generated files must be reproducible from source through a documented command. C
 - Bound browser memory used by logs and histories.
 - Account for the ESP32's limited memory when considering entity counts and simultaneous clients.
 
+## Dashboard configuration persistence
+
+Custom dashboard configuration is stored as bounded JSON in ESP32 preferences. The `/dashboard-config` endpoint is registered on ESPHome's shared HTTP server and uses its authentication and origin middleware. Request bodies are limited to 768 bytes; no filesystem or second HTTP server is added. Writes run on ESPHome's main loop and are skipped when the configuration is unchanged.
+
 ## Out of immediate scope
 
 - Full support for every ESPHome domain.
-- Visual dashboard editor.
+- Visual dashboard editor (next phase).
 - Home Assistant as a backend.
-- Remote configuration or dashboard persistence on the device.
 - First stable release and license selection.
 
 ## Dashboard configuration
 
-The declarative configuration lives in `web/src/dashboard-config.js` and is bundled locally. Each entity can be configured by its normalized identifier (`name_id`, falling back to `id`) with `visible`, `label`, `unit`, `group` and `order`. Groups declare their title, domains, grid type and order. Set `showUnconfiguredEntities: false` to enable explicit selection. The header reads the device name from `title` in ESPHome's initial SSE `ping` event, populated from `friendly_name` or the node name; `deviceName` can override it.
+The declarative configuration lives in `web/src/dashboard-config.js` and is bundled locally. Each entity can be configured by its normalized identifier (`name_id`, falling back to `id`) with `visible`, `label`, `description`, `group` and `order`. Groups declare their title, domains, grid type and order. Set `showUnconfiguredEntities: false` to enable explicit selection. The header reads the device name from `title` in ESPHome's initial SSE `ping` event, populated from `friendly_name` or the node name; `deviceName` can override it.
 
 ## Next deliverable
 

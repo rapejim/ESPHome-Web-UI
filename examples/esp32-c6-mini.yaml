@@ -1,3 +1,8 @@
+external_components:
+  - source:
+      type: local
+      path: ../components
+
 esphome:
   name: esphome-web-ui-c6-poc
   friendly_name: ESPHome Web UI C6 PoC
@@ -27,6 +32,8 @@ web_server:
     type: digest
     username: admin
     password: "change-me-before-deploy"
+
+dashboard_storage: {}
 
 sensor:
   - platform: template

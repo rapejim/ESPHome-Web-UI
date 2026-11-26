@@ -65,7 +65,7 @@ La configuración de una instalación debe poder declarar, progresivamente:
 
 - Título y descripción del dispositivo.
 - Entidades que se muestran y orden.
-- Etiquetas y unidades personalizadas.
+- Etiquetas y descripciones complementarias.
 - Grupos/secciones y opciones visuales.
 
 No se debe asumir que todas las entidades del dispositivo tienen que mostrarse. El descubrimiento automático podrá ayudar, pero la selección final debe ser configurable.
@@ -98,17 +98,20 @@ Los archivos generados deben poder reproducirse desde el código fuente mediante
 - Limitar memoria usada por logs e historiales en el navegador.
 - El número de entidades y clientes simultáneos debe tenerse en cuenta por la memoria limitada del ESP32.
 
+## Persistencia de configuración
+
+La configuración personalizada se guarda como JSON acotado en las preferencias persistentes del ESP32. El endpoint `/dashboard-config` se registra en el servidor HTTP compartido de ESPHome y utiliza su middleware de autenticación y control de origen. El cuerpo está limitado a 768 bytes; no se incorpora un sistema de archivos ni un servidor HTTP adicional. Las escrituras se ejecutan en el bucle principal de ESPHome y solo cuando cambia el contenido.
+
 ## Fuera del alcance inmediato
 
 - Soporte completo de todos los dominios ESPHome.
-- Editor visual de dashboards.
+- Editor visual de dashboards (siguiente fase).
 - Integración con Home Assistant como backend.
-- Configuración remota o persistencia de dashboards en el dispositivo.
 - Publicación de una primera versión estable y elección de licencia.
 
 ## Configuración de dashboards
 
-La configuración declarativa vive en `web/src/dashboard-config.js` y se empaqueta en el bundle local. Cada entidad puede configurarse por su identificador normalizado (`name_id`, con fallback a `id`) con `visible`, `label`, `unit`, `group` y `order`. Los grupos declaran título, dominios, tipo de cuadrícula y orden. `showUnconfiguredEntities: false` activa el modo de selección explícita. La cabecera obtiene el nombre real desde `title` en el primer evento SSE `ping`, que ESPHome rellena con `friendly_name` o `name`; `deviceName` permite una etiqueta fija.
+La configuración declarativa vive en `web/src/dashboard-config.js` y se empaqueta en el bundle local. Cada entidad puede configurarse por su identificador normalizado (`name_id`, con fallback a `id`) con `visible`, `label`, `description`, `group` y `order`. Los grupos declaran título, dominios, tipo de cuadrícula y orden. `showUnconfiguredEntities: false` activa el modo de selección explícita. La cabecera obtiene el nombre real desde `title` en el primer evento SSE `ping`, que ESPHome rellena con `friendly_name` o `name`; `deviceName` permite una etiqueta fija.
 
 ## Siguiente entrega
 
