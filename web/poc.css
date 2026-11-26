@@ -432,3 +432,29 @@ footer {
 
 
 [hidden]{display:none!important}.binary-sensor-card .sensor-value{font-size:1.65rem}.binary-sensor-card.binary-active{border-color:#51d49a}.binary-sensor-card.binary-inactive{border-color:#52647d}
+
+.actuators-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.actuator-card { min-width: 0; }
+.actuator-card .actuator-name { overflow-wrap: anywhere; }
+.actuator-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actuator-actions .button { flex: 1 1 auto; }
+.brightness-control {
+  display: flex;
+  min-width: min(100%, 220px);
+  flex: 1 1 220px;
+  align-items: center;
+  gap: 10px;
+  color: #aab6c7;
+  font-size: 0.82rem;
+}
+.brightness-control input { min-width: 80px; flex: 1; accent-color: #8bb8f4; }
+.brightness-control output { min-width: 42px; color: #dce6f5; text-align: right; }
+.light-color-control[hidden], .brightness-control[hidden], .light-apply[hidden] { display: none; }
+@media (min-width: 640px) {
+  .actuators-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .actuator-card.light-card { grid-column: 1 / -1; }
+}

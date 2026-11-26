@@ -48,7 +48,7 @@ Orden inicial propuesto:
 
 1. Sensor y binary sensor: solo lectura.
 2. Switch y button: acciones básicas.
-3. Light: encendido/apagado, brillo y color cuando el tipo lo permita.
+3. Light: encendido/apagado, brillo y color cuando el estado expuesto por ESPHome confirma que esas capacidades están disponibles.
 4. Fan y climate: en fases posteriores, tras validar sus modelos y endpoints.
 
 Los componentes no deben abrir conexiones SSE ni construir peticiones HTTP directamente; utilizarán el cliente y el registro.
@@ -108,4 +108,4 @@ Los archivos generados deben poder reproducirse desde el código fuente mediante
 
 ## Siguiente entrega
 
-La primera entrega de implementación extraerá el transporte SSE/REST de la PoC a un cliente independiente, añadirá pruebas automatizadas y mantendrá la interfaz demo funcionando sin cambios visibles. Después se incorporarán el registro de entidades y los primeros componentes genéricos.
+La siguiente entrega abordará la configuración de dashboards, selección explícita de entidades, grupos y orden visual.

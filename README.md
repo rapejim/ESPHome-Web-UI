@@ -23,8 +23,9 @@ La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobad
 - Fase 3: ejemplo ESP32-C6 Mini y validación funcional en hardware.
 - Fase 4: arquitectura del frontend reutilizable y cliente SSE/REST independiente.
 - Fase 5: registro normalizado de entidades.
-- Fase 6 (en curso): componentes genéricos para sensores y sensores binarios, con versión visible en la interfaz.
-- Próximas fases: componentes genéricos para actuadores, configuración de dashboards, grupos, etiquetas y pruebas con más placas.
+- Fase 6: componentes genéricos para sensores y sensores binarios, con versión visible en la interfaz.
+- Fase 7 (en curso): componentes genéricos para `switch`, `button` y `light`.
+- Próximas fases: configuración de dashboards, grupos, etiquetas y pruebas con más placas.
 
 Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.
 
@@ -38,7 +39,7 @@ Actualmente hay dos configuraciones, ambas con el mismo frontend:
 - Módulo JavaScript: [web/poc.js](web/poc.js)
 - Hoja de estilos: [web/poc.css](web/poc.css)
 
-La interfaz muestra automáticamente las entidades `sensor` y `binary_sensor` recibidas desde ESPHome, además de los actuadores de demostración (interruptor y luz RGB). Utiliza el flujo SSE `/events` de ESPHome para recibir estados y mensajes de log, y sus endpoints REST para enviar órdenes.
+La interfaz muestra automáticamente las entidades `sensor`, `binary_sensor`, `switch`, `button` y `light` recibidas desde ESPHome. Utiliza el flujo SSE `/events` de ESPHome para recibir estados y mensajes de log, y sus endpoints REST para enviar órdenes.
 
 ## Versionado
 
