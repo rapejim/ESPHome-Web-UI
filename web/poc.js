@@ -187,12 +187,12 @@ class ESPHomeWebUI extends HTMLElement {
     if (empty) empty.remove();
 
     // Log messages may contain ANSI color sequences. Render as text, never HTML.
-    const cleanMessage = String(message).replace(/\\u001b\\[[0-?]*[ -/]*[@-~]/g, "");
+    const cleanMessage = String(message).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
     const line = document.createElement("div");
     line.className = "log-line";
     line.textContent = cleanMessage;
 
-    const level = cleanMessage.match(/\\[([EWIDV])\\]/)?.[1] || "";
+    const level = cleanMessage.match(/\[([EWIDV])\]/)?.[1] || "";
     if (level) line.dataset.level = level;
     this._logs.append(line);
 
