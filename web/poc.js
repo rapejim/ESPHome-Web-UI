@@ -207,11 +207,9 @@
  function mergeDashboardConfig(base,saved){
   if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
   let groups=base.groups;
-  if(Array.isArray(saved.groups)){
-   groups=saved.groups.filter(g=>g&&typeof g.id==="string"&&(base.groups.some(x=>x.id===g.id)||(typeof g.title==="string"&&Array.isArray(g.domains))))
-    .map(g=>{const original=base.groups.find(x=>x.id===g.id);return {...(original||{}),...g,domains:Array.isArray(g.domains)?g.domains:[...(original?.domains||[])]};})
-    .filter(g=>typeof g.title==="string"&&Array.isArray(g.domains));
-  }
+  if(Array.isArray(saved.groups))groups=saved.groups.filter(g=>g&&typeof g.id==="string"&&(base.groups.some(x=>x.id===g.id)||(typeof g.title==="string"&&Array.isArray(g.domains))))
+   .map(g=>{const original=base.groups.find(x=>x.id===g.id);return {...(original||{}),...g,domains:Array.isArray(g.domains)?g.domains:[...(original?.domains||[])]};})
+   .filter(g=>typeof g.title==="string"&&Array.isArray(g.domains));
   const entities=saved.entities&&typeof saved.entities==="object"&&!Array.isArray(saved.entities)?Object.fromEntries(Object.entries(saved.entities).filter(([,v])=>v&&typeof v==="object"&&!Array.isArray(v))):{};
   return {...base,deviceName:typeof saved.deviceName==="string"?saved.deviceName:base.deviceName,subtitle:typeof saved.subtitle==="string"?saved.subtitle:base.subtitle,
    showUnconfiguredEntities:typeof saved.showUnconfiguredEntities==="boolean"?saved.showUnconfiguredEntities:base.showUnconfiguredEntities,groups,entities:{...base.entities,...entities}};
