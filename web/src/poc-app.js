@@ -125,7 +125,7 @@ class ESPHomeWebUI extends HTMLElement {
   _renderDeviceHeader() {
     const configuredName = this._dashboardConfig.deviceName.trim();
     const deviceName = configuredName || (typeof this._deviceInfo.title === "string" ? this._deviceInfo.title.trim() : "");
-    if (deviceName) this.querySelector("#device-title").textContent = deviceName;
+    this.querySelector("#device-title").textContent = deviceName || "Mi dispositivo";
     const subtitle = this._dashboardConfig.subtitle.trim() ||
       (typeof this._deviceInfo.comment === "string" ? this._deviceInfo.comment.trim() : "") ||
       "Panel de control independiente";
