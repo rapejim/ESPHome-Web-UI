@@ -51,15 +51,17 @@
       const reset=el("button",{type:"button",class:"button secondary"},"Restablecer valores de fábrica");
       const status=el("span",{class:"editor-status","aria-live":"polite"});
       footer.append(size,save,reset,status);body.append(footer);details.append(body);
-      const defaultGroup=entity=>groups.find(g=>g.domains.includes(entity.domain));
+      const compatibleGroups=entity=>groups.filter(g=>g.domains.includes(entity.domain));
+      const defaultGroup=entity=>compatibleGroups(entity)[0];
       const refreshGroupOptions=()=>{
         rows.forEach(row=>{
           const previous=row.group.value;
           row.group.replaceChildren();
-          groups.forEach(group=>row.group.append(el("option",{value:group.id},group.title)));
+          const compatible=compatibleGroups(row.entity);
+          compatible.forEach(group=>row.group.append(el("option",{value:group.id},group.title)));
           row.group.append(el("option",{value:"other"},"Otras entidades"));
           const fallback=defaultGroup(row.entity);
-          row.group.value=groups.some(g=>g.id===previous)?previous:(fallback?fallback.id:"other");
+          row.group.value=compatible.some(g=>g.id===previous)?previous:(fallback?fallback.id:"other");
         });
       };
       const buildConfig=()=>{
@@ -74,7 +76,7 @@
           if(row.order.value.trim()!=="")custom.order=Math.max(0,Math.min(999,Number(row.order.value)||0));
           if(Object.keys(custom).length)entities[row.entity.id]=custom;
         });
-        return {deviceName:name.value.trim(),subtitle:subtitle.value.trim(),showUnconfiguredEntities:show.checked,groups:cloneGroups(groups),entities};
+        return serializeDashboardConfig({deviceName:name.value.trim(),subtitle:subtitle.value.trim(),showUnconfiguredEntities:show.checked,groups:cloneGroups(groups),entities},this.entities);
       };
       const updateSize=()=>{
         const bytes=new TextEncoder().encode(JSON.stringify(buildConfig())).length;
@@ -91,9 +93,8 @@
           groupOrder.addEventListener("input",()=>{group.order=Math.max(0,Math.min(999,Number(groupOrder.value)||0));updateSize();});
           const remove=el("button",{type:"button",class:"button danger"},"Eliminar");
           remove.addEventListener("click",()=>{
-            const fallback=groups.find(item=>item.id!==group.id);
-            rows.forEach(row=>{if(row.group.value===group.id)row.group.value=fallback?fallback.id:"other";});
             const index=groups.findIndex(item=>item.id===group.id);if(index>=0)groups.splice(index,1);
+            rows.forEach(row=>{if(row.group.value===group.id){const fallback=defaultGroup(row.entity);row.group.value=fallback?fallback.id:"other";}});
             refreshGroups();refreshGroupOptions();updateSize();
           });
           heading.append(this.field("Orden",groupOrder),remove);
@@ -102,7 +103,7 @@
           const domains=el("div",{class:"editor-domain-options"});
           DOMAINS.forEach(domain=>{
             const input=el("input",{type:"checkbox",checked:group.domains.includes(domain)});
-            input.addEventListener("change",()=>{group.domains=input.checked?[...new Set([...group.domains,domain])]:group.domains.filter(item=>item!==domain);group.layout=group.domains.some(item=>["sensor","binary_sensor"].includes(item))?"sensors":"controls";updateSize();});
+            input.addEventListener("change",()=>{group.domains=input.checked?[...new Set([...group.domains,domain])]:group.domains.filter(item=>item!==domain);group.layout=group.domains.some(item=>["sensor","binary_sensor"].includes(item))?"sensors":"controls";refreshGroupOptions();updateSize();});
             domains.append(this.field(domain,input));
           });
           card.append(heading,this.field("Nombre",title),this.field("Dominios",domains));groupList.append(card);
