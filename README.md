@@ -44,7 +44,7 @@ La interfaz muestra automáticamente las entidades `sensor`, `binary_sensor`, `s
 
 ## Configuración del dashboard
 
-El dashboard incluye un editor visual accesible desde «Configurar dashboard». Permite cambiar el nombre y subtítulo, decidir si se muestran automáticamente las entidades nuevas, ajustar visibilidad, etiquetas, descripciones, grupos y orden, y crear grupos adicionales. Los cambios se guardan mediante `POST /dashboard-config` en las preferencias NVS del ESP32 y sobreviven a reinicios. El límite actual de almacenamiento es de 768 bytes; el editor muestra el tamaño antes de guardar. La configuración inicial del firmware sigue disponible en `web/src/dashboard-config.js`.
+El dashboard incluye un editor visual accesible desde «Configurar dashboard». Permite cambiar el nombre y subtítulo, decidir si se muestran automáticamente las entidades nuevas, ajustar visibilidad, etiquetas, descripciones, grupos y orden, crear grupos con dominios seleccionados, renombrarlos, ordenarlos, eliminarlos y reasignar sus entidades. También permite restablecer los valores de fábrica guardando una configuración vacía (`{}`). Los cambios se guardan mediante `POST /dashboard-config` en las preferencias NVS del ESP32 y sobreviven a reinicios. El límite actual de almacenamiento es de 768 bytes; el editor muestra el tamaño antes de guardar. La configuración inicial del firmware sigue disponible en `web/src/dashboard-config.js`.
 
 ## Versionado
 

@@ -6,100 +6,134 @@
   "use strict";
   const DOMAINS=["sensor","binary_sensor","switch","button","light"];
   const el=(tag,attrs={},text)=>{const node=document.createElement(tag);for(const [key,value] of Object.entries(attrs)){if(key==="class")node.className=value;else if(key==="checked")node.checked=value;else node.setAttribute(key,value);}if(text!==undefined)node.textContent=text;return node;};
+  const cloneGroups=groups=>groups.map(group=>({...group,domains:[...group.domains]}));
   class DashboardEditor extends HTMLElement{
-    setData(config,entities,onSave){
-      this.config=config;this.entities=entities;this.onSave=onSave;this.render();
-    }
+    setData(config,entities,onSave){this.config=config;this.entities=entities;this.onSave=onSave;this.render();}
+    field(label,control){const wrapper=el("label",{class:"editor-field"});wrapper.append(el("span",{},label),control);return wrapper;}
     render(){
       if(!this.config||!this.entities)return;
+      const groups=cloneGroups(this.config.groups||[]);
       const details=el("details",{class:"dashboard-editor"});
-      const summary=el("summary",{},"⚙ Configurar dashboard");
-      details.append(summary);
+      details.append(el("summary",{},"⚙ Configurar dashboard"));
       const body=el("div",{class:"editor-body"});
-      const intro=el("p",{class:"editor-help"},"Los cambios se guardan en el dispositivo y se conservan tras reiniciarlo.");
-      body.append(intro);
+      body.append(el("p",{class:"editor-help"},"Los cambios se guardan en el dispositivo y se conservan tras reiniciarlo."));
       const name=el("input",{type:"text",maxlength:"48",class:"editor-input",value:this.config.deviceName||""});
       const subtitle=el("input",{type:"text",maxlength:"64",class:"editor-input",value:this.config.subtitle||""});
-      body.append(this.field("Nombre del panel",name),this.field("Subtítulo",subtitle));
       const show=el("input",{type:"checkbox",checked:this.config.showUnconfiguredEntities!==false});
-      body.append(this.field("Mostrar entidades nuevas automáticamente",show));
-      const groupBox=el("div",{class:"editor-group-tools"});
-      const newGroup=el("input",{type:"text",maxlength:"24",class:"editor-input",placeholder:"Nombre del nuevo grupo"});
-      const addGroup=el("button",{type:"button",class:"button secondary"},"Añadir grupo");
-      groupBox.append(newGroup,addGroup);
-      body.append(el("h3",{},"Grupos"),groupBox);
+      body.append(this.field("Nombre del panel",name),this.field("Subtítulo",subtitle),this.field("Mostrar entidades nuevas automáticamente",show));
+      body.append(el("h3",{},"Grupos"));
       const groupList=el("div",{class:"editor-groups"});
-      this.config.groups.forEach(g=>groupList.append(el("span",{class:"editor-chip"},g.title)));
-      body.append(groupList,el("h3",{},"Entidades"));
-      const list=el("div",{class:"editor-entities"});
-      const rows=[];
-      this.entities.slice().sort((a,b)=>a.name.localeCompare(b.name,"es")).forEach(entity=>{
+      const create=el("div",{class:"editor-group-create"});
+      const newName=el("input",{type:"text",maxlength:"24",class:"editor-input",placeholder:"Nombre del grupo"});
+      const domainChecks={};
+      const domainBox=el("div",{class:"editor-domain-options"});
+      DOMAINS.forEach(domain=>{const input=el("input",{type:"checkbox",checked:["sensor","binary_sensor"].includes(domain)});domainChecks[domain]=input;domainBox.append(this.field(domain,input));});
+      const add=el("button",{type:"button",class:"button secondary"},"Añadir grupo");
+      create.append(newName,domainBox,add);body.append(create,groupList);
+      const list=el("div",{class:"editor-entities"}),rows=[];
+      this.entities.slice().sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id,"es")).forEach(entity=>{
         const custom=this.config.entities[entity.id]||{};
         const row=el("div",{class:"editor-entity"});
-        const visible=el("input",{type:"checkbox",checked:custom.visible===undefined?this.config.showUnconfiguredEntities!==false:custom.visible===true});
-        const title=el("strong",{},entity.name||entity.id);
-        const id=el("small",{},entity.id);
-        const copy=el("div",{class:"editor-entity-copy"});copy.append(title,id);
+        const visible=el("input",{type:"checkbox",checked:custom.visible===undefined?show.checked:custom.visible===true});
+        const copy=el("div",{class:"editor-entity-copy"});
+        copy.append(el("strong",{},entity.name||entity.id),el("small",{},entity.id));
         const label=el("input",{type:"text",maxlength:"32",class:"editor-input",placeholder:"Etiqueta",value:custom.label||""});
         const description=el("input",{type:"text",maxlength:"40",class:"editor-input",placeholder:"Descripción",value:custom.description||""});
         const group=el("select",{class:"editor-input"});
-        this.config.groups.forEach(g=>group.append(el("option",{value:g.id},g.title)));
-        const defaultGroup=this.config.groups.find(g=>g.domains.includes(entity.domain));
-        group.append(el("option",{value:"other"},"Otras entidades"));
-        group.value=custom.group||(defaultGroup?defaultGroup.id:"other");
         const order=el("input",{type:"number",min:"0",max:"999",step:"1",class:"editor-order",value:custom.order===undefined?"":String(custom.order),placeholder:"Auto"});
         row.append(this.field("Mostrar",visible),copy,this.field("Etiqueta",label),this.field("Descripción",description),this.field("Grupo",group),this.field("Orden",order));
-        list.append(row);
-        rows.push({entity,visible,label,description,group,order});
+        list.append(row);rows.push({entity,visible,label,description,group,order});
       });
-      body.append(list);
+      body.append(el("h3",{},"Entidades"),list);
       const footer=el("div",{class:"editor-footer"});
       const size=el("span",{class:"editor-size"});
       const save=el("button",{type:"button",class:"button primary"},"Guardar cambios");
+      const reset=el("button",{type:"button",class:"button secondary"},"Restablecer valores de fábrica");
       const status=el("span",{class:"editor-status","aria-live":"polite"});
-      footer.append(size,save,status);body.append(footer);details.append(body);
+      footer.append(size,save,reset,status);body.append(footer);details.append(body);
+      const defaultGroup=entity=>groups.find(g=>g.domains.includes(entity.domain));
+      const refreshGroupOptions=()=>{
+        rows.forEach(row=>{
+          const previous=row.group.value;
+          row.group.replaceChildren();
+          groups.forEach(group=>row.group.append(el("option",{value:group.id},group.title)));
+          row.group.append(el("option",{value:"other"},"Otras entidades"));
+          const fallback=defaultGroup(row.entity);
+          row.group.value=groups.some(g=>g.id===previous)?previous:(fallback?fallback.id:"other");
+        });
+      };
       const buildConfig=()=>{
         const entities={};
-        rows.forEach(r=>{
-          const c={};
-          if(r.visible.checked!==(show.checked))c.visible=r.visible.checked;
-          const labelValue=r.label.value.trim();
-          if(labelValue&&labelValue!==r.entity.name)c.label=labelValue;
-          const desc=r.description.value.trim();if(desc)c.description=desc;
-          const defaultGroup=this.config.groups.find(g=>g.domains.includes(r.entity.domain));
-          const groupValue=r.group.value;
-          if(groupValue!==(defaultGroup?defaultGroup.id:"other"))c.group=groupValue;
-          if(r.order.value.trim()!=="")c.order=Math.max(0,Math.min(999,Number(r.order.value)||0));
-          if(Object.keys(c).length)entities[r.entity.id]=c;
+        rows.forEach(row=>{
+          const custom={};
+          if(row.visible.checked!==show.checked)custom.visible=row.visible.checked;
+          const label=row.label.value.trim();if(label&&label!==row.entity.name)custom.label=label;
+          const description=row.description.value.trim();if(description)custom.description=description;
+          const fallback=defaultGroup(row.entity);
+          if(row.group.value!==(fallback?fallback.id:"other"))custom.group=row.group.value;
+          if(row.order.value.trim()!=="")custom.order=Math.max(0,Math.min(999,Number(row.order.value)||0));
+          if(Object.keys(custom).length)entities[row.entity.id]=custom;
         });
-        return {deviceName:name.value.trim(),subtitle:subtitle.value.trim(),showUnconfiguredEntities:show.checked,groups:this.config.groups,entities};
+        return {deviceName:name.value.trim(),subtitle:subtitle.value.trim(),showUnconfiguredEntities:show.checked,groups:cloneGroups(groups),entities};
       };
       const updateSize=()=>{
         const bytes=new TextEncoder().encode(JSON.stringify(buildConfig())).length;
         size.textContent="Configuración: "+bytes+"/768 bytes";
-        size.classList.toggle("over-limit",bytes>768);
-        save.disabled=bytes>768;
+        size.classList.toggle("over-limit",bytes>768);save.disabled=bytes>768;
       };
-      show.addEventListener("change",()=>{rows.forEach(r=>{r.visible.checked=show.checked;});updateSize();});
-      [name,subtitle,show,...rows.flatMap(r=>[r.visible,r.label,r.description,r.group,r.order])].forEach(input=>input.addEventListener("input",updateSize));
-      addGroup.addEventListener("click",()=>{
-        const title=newGroup.value.trim();if(!title)return;
-        let id=title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,18);
-        if(!id||this.config.groups.some(g=>g.id===id)){status.textContent="Nombre de grupo no válido o repetido.";return;}
-        const domains=DOMAINS.slice();
-        this.config.groups.push({id,title,domains,layout:"controls",order:(this.config.groups.length+1)*10});
-        newGroup.value="";this.render();
-        const reopened=this.querySelector("details");if(reopened)reopened.open=true;
+      const refreshGroups=()=>{
+        groupList.replaceChildren();
+        groups.forEach((group,index)=>{
+          const card=el("div",{class:"editor-group"});
+          const heading=el("div",{class:"editor-group-heading"});
+          heading.append(el("strong",{},group.title));
+          const groupOrder=el("input",{type:"number",min:"0",max:"999",step:"1",class:"editor-order",value:String(group.order??(index+1)*10),"aria-label":"Orden de "+group.title});
+          groupOrder.addEventListener("input",()=>{group.order=Math.max(0,Math.min(999,Number(groupOrder.value)||0));updateSize();});
+          const remove=el("button",{type:"button",class:"button danger"},"Eliminar");
+          remove.addEventListener("click",()=>{
+            const fallback=groups.find(item=>item.id!==group.id);
+            rows.forEach(row=>{if(row.group.value===group.id)row.group.value=fallback?fallback.id:"other";});
+            const index=groups.findIndex(item=>item.id===group.id);if(index>=0)groups.splice(index,1);
+            refreshGroups();refreshGroupOptions();updateSize();
+          });
+          heading.append(this.field("Orden",groupOrder),remove);
+          const title=el("input",{type:"text",maxlength:"24",class:"editor-input",value:group.title});
+          title.addEventListener("input",()=>{group.title=title.value;heading.querySelector("strong").textContent=group.title;refreshGroupOptions();updateSize();});
+          const domains=el("div",{class:"editor-domain-options"});
+          DOMAINS.forEach(domain=>{
+            const input=el("input",{type:"checkbox",checked:group.domains.includes(domain)});
+            input.addEventListener("change",()=>{group.domains=input.checked?[...new Set([...group.domains,domain])]:group.domains.filter(item=>item!==domain);group.layout=group.domains.some(item=>["sensor","binary_sensor"].includes(item))?"sensors":"controls";updateSize();});
+            domains.append(this.field(domain,input));
+          });
+          card.append(heading,this.field("Nombre",title),this.field("Dominios",domains));groupList.append(card);
+        });
+      };
+      refreshGroups();refreshGroupOptions();
+      show.addEventListener("change",()=>{rows.forEach(row=>row.visible.checked=show.checked);updateSize();});
+      [name,subtitle,show,...rows.flatMap(row=>[row.visible,row.label,row.description,row.group,row.order])].forEach(input=>input.addEventListener("input",updateSize));
+      add.addEventListener("click",()=>{
+        const title=newName.value.trim();if(!title){status.textContent="Indica un nombre para el grupo.";return;}
+        const id=title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,18);
+        if(!id||groups.some(group=>group.id===id)){status.textContent="Nombre de grupo no válido o repetido.";return;}
+        const domains=DOMAINS.filter(domain=>domainChecks[domain].checked);
+        groups.push({id,title,domains,layout:domains.some(domain=>["sensor","binary_sensor"].includes(domain))?"sensors":"controls",order:(groups.length+1)*10});
+        newName.value="";refreshGroups();refreshGroupOptions();updateSize();
       });
       save.addEventListener("click",async()=>{
-        const config=buildConfig();save.disabled=true;status.textContent="Guardando…";
-        try{await this.onSave(config);status.textContent="Guardado correctamente.";}
+        save.disabled=true;status.textContent="Guardando…";
+        try{await this.onSave(buildConfig());status.textContent="Guardado correctamente.";}
         catch(error){status.textContent=error.message||"No se pudo guardar.";}
         save.disabled=false;
       });
+      reset.addEventListener("click",async()=>{
+        if(typeof globalThis.confirm==="function"&&!globalThis.confirm("Se perderán los cambios personalizados y se recuperará la configuración incluida en el firmware. ¿Continuar?"))return;
+        reset.disabled=true;save.disabled=true;status.textContent="Restableciendo…";
+        try{await this.onSave({});status.textContent="Configuración de fábrica restaurada.";}
+        catch(error){status.textContent=error.message||"No se pudo restablecer.";}
+        reset.disabled=false;save.disabled=false;
+      });
       this.replaceChildren(details);updateSize();
     }
-    field(label,control){const wrapper=el("label",{class:"editor-field"});wrapper.append(el("span",{},label),control);return wrapper;}
   }
   if(typeof customElements!=="undefined"&&!customElements.get("dashboard-editor"))customElements.define("dashboard-editor",DashboardEditor);
   return {DashboardEditor};

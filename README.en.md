@@ -44,7 +44,7 @@ The UI automatically displays `sensor`, `binary_sensor`, `switch`, `button` and 
 
 ## Dashboard configuration
 
-The dashboard includes a visual editor available from “Configure dashboard”. It can change the device name and subtitle, automatic discovery visibility, entity visibility, labels, descriptions, groups and ordering, and create additional groups. Changes are saved through `POST /dashboard-config` into ESP32 NVS preferences and survive reboots. The current storage limit is 768 bytes; the editor displays the serialized size before saving. Firmware defaults remain available in `web/src/dashboard-config.js`.
+The dashboard includes a visual editor available from “Configure dashboard”. It can change the device name and subtitle, automatic discovery visibility, entity visibility, labels, descriptions, groups and ordering, create groups with selected domains, rename, reorder and delete them, and reassign their entities. It can also restore factory defaults by saving an empty configuration (`{}`). Changes are saved through `POST /dashboard-config` into ESP32 NVS preferences and survive reboots. The current storage limit is 768 bytes; the editor displays the serialized size before saving. Firmware defaults remain available in `web/src/dashboard-config.js`.
 
 ## Versioning
 

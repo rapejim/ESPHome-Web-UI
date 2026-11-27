@@ -44,3 +44,12 @@ test("ignores malformed saved group and entity entries", () => {
   assert.equal(merged.entities["sensor/Bad"],undefined);
   assert.equal(merged.entities["sensor/Good"].visible,false);
 });
+
+test("an empty saved configuration restores firmware defaults", () => {
+  const merged=mergeDashboardConfig(DASHBOARD_CONFIG,{});
+  assert.deepEqual(merged.groups,DASHBOARD_CONFIG.groups);
+  assert.equal(merged.deviceName,"");
+  assert.equal(merged.subtitle,"");
+  assert.equal(merged.showUnconfiguredEntities,true);
+  assert.deepEqual(merged.entities,{});
+});

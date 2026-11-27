@@ -117,6 +117,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, config);
     this._renderDeviceHeader();
     for (const entity of this._registry.getAll()) this._renderEntity(entity);
+    this._removeEmptyGroups();
     this._renderEditor();
     this._showFeedback(response.status === 202 ? "Configuración guardada." : "La configuración ya estaba guardada.");
   }
@@ -186,9 +187,24 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
+  _removeEmptyGroups() {
+    for (const [id, group] of this._groupContainers) {
+      if (group.grid.children.length === 0) {
+        group.section.remove();
+        this._groupContainers.delete(id);
+      }
+    }
+  }
+
   _getGroupContainer(groupConfig) {
     let container=this._groupContainers.get(groupConfig.id);
-    if(container)return container;
+    if(container) {
+      container.section.dataset.order=String(groupConfig.order);
+      container.section.querySelector("h2").textContent=groupConfig.title;
+      container.grid.className=groupConfig.layout==="sensors"?"sensor-grid":"actuators-grid";
+      this._sortDashboardGroups();
+      return container;
+    }
     const section=document.createElement("section");
     section.className="section dashboard-group";
     section.dataset.groupId=groupConfig.id;
