@@ -55,7 +55,7 @@
       const defaultGroup=entity=>compatibleGroups(entity)[0];
       const refreshGroupOptions=()=>{
         rows.forEach(row=>{
-          const previous=row.group.value;
+          const previous=row.group.value||this.config.entities?.[row.entity.id]?.group;
           row.group.replaceChildren();
           const compatible=compatibleGroups(row.entity);
           compatible.forEach(group=>row.group.append(el("option",{value:group.id},group.title)));
