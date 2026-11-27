@@ -27,7 +27,12 @@ const bundle = [
 if (process.argv.includes("--check")) {
   const current = fs.existsSync(outputFile) ? fs.readFileSync(outputFile, "utf8").replace(/\r\n?/g, "\n") : "";
   if (current !== bundle) {
-    let index = 0;\n    while (index < current.length && index < bundle.length && current[index] === bundle[index]) index++;\n    console.error(`web/poc.js is out of date (current: ${current.length} chars, expected: ${bundle.length} chars, first difference: ${index}).`);\n    console.error(`Current: ${JSON.stringify(current.slice(Math.max(0, index - 40), index + 80))}`);\n    console.error(`Expected: ${JSON.stringify(bundle.slice(Math.max(0, index - 40), index + 80))}`);\n    console.error("Run npm run build and commit the result.");
+    let index = 0;
+    while (index < current.length && index < bundle.length && current[index] === bundle[index]) index++;
+    console.error(`web/poc.js is out of date (current: ${current.length} chars, expected: ${bundle.length} chars, first difference: ${index}).`);
+    console.error(`Current: ${JSON.stringify(current.slice(Math.max(0, index - 40), index + 80))}`);
+    console.error(`Expected: ${JSON.stringify(bundle.slice(Math.max(0, index - 40), index + 80))}`);
+    console.error("Run npm run build and commit the result.");
     process.exit(1);
   }
 } else {
