@@ -70,7 +70,14 @@ class ESPHomeWebUI extends HTMLElement {
     this._client.on("connection", ({ connected, label }) => this._setConnection(connected, label));
     this._client.on("state", (data) => this._registry.update(data));
     this._client.on("deviceConfig", (config) => {
-      this._deviceInfo = config;
+      // ESPHome may emit partial ping payloads. Keep the last non-empty
+      // metadata value instead of replacing it with a missing/empty field.
+      if (typeof config?.title === "string" && config.title.trim()) {
+        this._deviceInfo.title = config.title.trim();
+      }
+      if (typeof config?.comment === "string" && config.comment.trim()) {
+        this._deviceInfo.comment = config.comment.trim();
+      }
       this._renderDeviceHeader();
     });
     this._client.on("log", (message) => this._appendLog(message));
