@@ -110,6 +110,7 @@
     const brightnessControl=card.querySelector(".brightness-control");
     colorControl.hidden=!view.supportsColor;
     brightnessControl.hidden=!view.supportsBrightness;
+    card.classList.toggle("has-extra-controls",view.supportsColor||view.supportsBrightness);
 
     let draft=card._lightDraft;
     if(draft&&Date.now()>=draft.expiresAt){
