@@ -21,7 +21,9 @@
       const subtitle=el("input",{type:"text",maxlength:"64",class:"editor-input",value:this.config.subtitle||""});
       const show=el("input",{type:"checkbox",checked:this.config.showUnconfiguredEntities!==false});
       body.append(this.field("Nombre del panel",name),this.field("Subtítulo",subtitle),this.field("Mostrar entidades nuevas automáticamente",show));
-      body.append(el("h3",{},"Grupos"));
+      const groupSection=el("details",{class:"editor-subsection"});
+      groupSection.append(el("summary",{},"Grupos"));
+      const groupContent=el("div",{class:"editor-subsection-content"});
       const groupList=el("div",{class:"editor-groups"});
       const create=el("div",{class:"editor-group-create"});
       const newName=el("input",{type:"text",maxlength:"24",class:"editor-input",placeholder:"Nombre del grupo"});
@@ -29,7 +31,13 @@
       const domainBox=el("div",{class:"editor-domain-options"});
       DOMAINS.forEach(domain=>{const input=el("input",{type:"checkbox",checked:["sensor","binary_sensor"].includes(domain)});domainChecks[domain]=input;domainBox.append(this.field(domain,input));});
       const add=el("button",{type:"button",class:"button secondary"},"Añadir grupo");
-      create.append(newName,domainBox,add);body.append(create,groupList);
+      create.append(newName,domainBox,add);
+      groupContent.append(create,groupList);
+      groupSection.append(groupContent);
+      body.append(groupSection);
+      const entitySection=el("details",{class:"editor-subsection"});
+      entitySection.append(el("summary",{},"Entidades"));
+      const entityContent=el("div",{class:"editor-subsection-content"});
       const list=el("div",{class:"editor-entities"}),rows=[];
       this.entities.slice().sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id,"es")).forEach(entity=>{
         const custom=this.config.entities[entity.id]||{};
@@ -44,7 +52,9 @@
         row.append(this.field("Mostrar",visible),copy,this.field("Etiqueta",label),this.field("Descripción",description),this.field("Grupo",group),this.field("Orden",order));
         list.append(row);rows.push({entity,visible,label,description,group,order});
       });
-      body.append(el("h3",{},"Entidades"),list);
+      entityContent.append(list);
+      entitySection.append(entityContent);
+      body.append(entitySection);
       const footer=el("div",{class:"editor-footer"});
       const size=el("span",{class:"editor-size"});
       const save=el("button",{type:"button",class:"button primary"},"Guardar cambios");
