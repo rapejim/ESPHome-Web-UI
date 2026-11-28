@@ -649,7 +649,7 @@ osc.addEventListener("change",schedule);
 c.querySelector(".fan-on").addEventListener("click",()=>send(e.id,"turn_on"));
 c.querySelector(".fan-off").addEventListener("click",()=>send(e.id,"turn_off"));
 updateFanCard(c,e);return c;}
-function updateFanCard(c,e){c._lastEntity=e;const v=getFanPresentation(e);c.querySelector(".actuator-name").textContent=v.name;c.querySelector(".actuator-state").textContent=v.state;c.querySelector(".fan-on").disabled=v.isOn;c.querySelector(".fan-off").disabled=!v.isOn;c.querySelector(".fan-icon").classList.toggle("fan-running",v.isOn);const sc=c.querySelector(".fan-speed-control"),oc=c.querySelector(".fan-oscillation-control");sc.hidden=!v.supportsSpeed;oc.hidden=!v.supportsOscillation;c.classList.toggle("has-extra-controls",v.supportsSpeed||v.supportsOscillation);const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");speed.max=String(v.speedCount);let draft=c._fanDraft;if(draft&&Date.now()>=draft.expiresAt){c._fanDraft=null;draft=null;}if(draft){speed.value=String(Math.min(v.speedCount,draft.speedLevel));osc.checked=draft.oscillation;}else{if(document.activeElement!==speed)speed.value=String(v.speedLevel);if(document.activeElement!==osc)osc.checked=v.oscillation;}updateSpeedPresentation();}
+function updateFanCard(c,e){c._lastEntity=e;const v=getFanPresentation(e);c.querySelector(".actuator-name").textContent=v.name;c.querySelector(".actuator-state").textContent=v.state;c.querySelector(".fan-on").disabled=v.isOn;c.querySelector(".fan-off").disabled=!v.isOn;c.querySelector(".fan-icon").classList.toggle("fan-running",v.isOn);const sc=c.querySelector(".fan-speed-control"),oc=c.querySelector(".fan-oscillation-control");sc.hidden=!v.supportsSpeed;oc.hidden=!v.supportsOscillation;c.classList.toggle("has-extra-controls",v.supportsSpeed||v.supportsOscillation);const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");speed.max=String(v.speedCount);let draft=c._fanDraft;if(draft&&Date.now()>=draft.expiresAt){c._fanDraft=null;draft=null;}if(draft){speed.value=String(Math.min(v.speedCount,draft.speedLevel));osc.checked=draft.oscillation;}else{if(document.activeElement!==speed)speed.value=String(v.speedLevel);if(document.activeElement!==osc)osc.checked=v.oscillation;}c.querySelector(".fan-speed-value").textContent=speed.value;speed.style.setProperty("--range-progress",getFanSpeedProgress(speed.value,speed.min,speed.max)+"%");}
 return{isFanOn,getFanPresentation,getFanSpeedProgress,buildFanCommandParams,createFanCard,updateFanCard};});
 
 class ESPHomeWebUI extends HTMLElement {
@@ -690,7 +690,7 @@ class ESPHomeWebUI extends HTMLElement {
           </details>
         </section>
         <dashboard-editor></dashboard-editor>
-        <footer>ESPHome Web UI · <span id="app-version">v0.7.2</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.7.4</span> · Sin servicios externos</footer>
       </main>
     `;
 
