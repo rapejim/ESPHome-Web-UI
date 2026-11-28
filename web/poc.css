@@ -515,3 +515,5 @@ footer {
 .editor-subsection > summary { padding: 11px 12px; color: #dce6f5; font-size: .82rem; font-weight: 650; cursor: pointer; }
 .editor-subsection-content { display: grid; gap: 10px; padding: 0 10px 12px; }
 .editor-subsection[open] > summary { border-bottom: 1px solid #29384d; margin-bottom: 10px; }
+
+.fan-card{padding:18px 20px}.fan-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.fan-heading h3{margin:0 0 5px}.fan-settings{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}.fan-speed-control{display:flex;align-items:center;gap:8px;color:#aab6c7;font-size:.8rem}.fan-speed{width:76px;min-height:36px;padding:6px 8px;border:1px solid #3b4a60;border-radius:8px;background:#172334;color:#eef2f8;font:inherit}.fan-oscillation-control{display:flex;align-items:center;gap:7px;color:#aab6c7;font-size:.8rem}.fan-oscillation-control input{width:17px;height:17px;accent-color:#8bb8f4}.fan-settings [hidden]{display:none!important}@media(max-width:520px){.fan-card{padding:16px}.fan-settings{align-items:flex-start}}

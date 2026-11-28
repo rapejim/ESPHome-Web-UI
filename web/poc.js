@@ -631,6 +631,16 @@ return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard
   return {getLightPresentation,buildLightCommandParams,createLightCard,updateLightCard};
 });
 
+(function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;if(root)Object.assign(root,api);})(typeof globalThis!=="undefined"?globalThis:this,function(){
+"use strict";
+function isFanOn(s){return s===true||s===1||s==="ON"||s==="on"||s==="true";}
+function getFanPresentation(e){const a=e.attributes||{},ss=Object.prototype.hasOwnProperty.call(a,"speed_level")&&Number.isFinite(Number(a.speed_level)),so=Object.prototype.hasOwnProperty.call(a,"oscillation");return{name:e.name||e.objectId||"Ventilador",isOn:isFanOn(e.state),state:isFanOn(e.state)?"Encendido":"Apagado",speedLevel:ss?Math.max(0,Math.floor(Number(a.speed_level)||0)):0,supportsSpeed:ss,oscillation:a.oscillation===true||a.oscillation===1||a.oscillation==="ON"||a.oscillation==="on"||a.oscillation==="true",supportsOscillation:so};}
+function buildFanCommandParams(o){const p=new URLSearchParams();if(o.supportsSpeed){const n=Math.floor(Number(o.speedLevel));if(Number.isFinite(n)&&n>=1)p.set("speed_level",String(n));}if(o.supportsOscillation)p.set("oscillation",o.oscillation?"ON":"OFF");return p;}
+function createFanCard(e,send){const c=document.createElement("article");c.className="card actuator-card fan-card";c.dataset.entityId=e.id;c.innerHTML='<div class="fan-heading"><div><h3 class="actuator-name"></h3><span class="actuator-state"></span></div><span class="control-icon" aria-hidden="true">🌀</span></div><div class="fan-settings"><label class="fan-speed-control">Velocidad <input class="fan-speed" type="number" min="1" step="1" inputmode="numeric"></label><label class="fan-oscillation-control"><input class="fan-oscillation" type="checkbox"> Oscilación</label><button class="button secondary fan-apply" type="button">Aplicar ajustes</button></div><div class="actuator-actions"><button class="button primary fan-on" type="button">Encender</button><button class="button secondary fan-off" type="button">Apagar</button></div>';c.querySelector(".fan-on").addEventListener("click",()=>send(e.id,"turn_on"));c.querySelector(".fan-off").addEventListener("click",()=>send(e.id,"turn_off"));c.querySelector(".fan-apply").addEventListener("click",()=>{const p=buildFanCommandParams({speedLevel:c.querySelector(".fan-speed").value,oscillation:c.querySelector(".fan-oscillation").checked,supportsSpeed:!c.querySelector(".fan-speed-control").hidden,supportsOscillation:!c.querySelector(".fan-oscillation-control").hidden});if(p.toString())send(e.id,"turn_on",p);});updateFanCard(c,e);return c;}
+function updateFanCard(c,e){const v=getFanPresentation(e);c.querySelector(".actuator-name").textContent=v.name;c.querySelector(".actuator-state").textContent=v.state;c.querySelector(".fan-on").disabled=v.isOn;c.querySelector(".fan-off").disabled=!v.isOn;const sc=c.querySelector(".fan-speed-control"),oc=c.querySelector(".fan-oscillation-control"),apply=c.querySelector(".fan-apply");sc.hidden=!v.supportsSpeed;oc.hidden=!v.supportsOscillation;apply.hidden=!v.supportsSpeed&&!v.supportsOscillation;apply.textContent=v.isOn?"Aplicar ajustes":"Encender y aplicar";const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");if(document.activeElement!==speed)speed.value=String(v.speedLevel||1);if(document.activeElement!==osc)osc.checked=v.oscillation;}
+return{isFanOn,getFanPresentation,buildFanCommandParams,createFanCard,updateFanCard};});
+
+
 class ESPHomeWebUI extends HTMLElement {
   connectedCallback() {
     if (this.dataset.initialized === "true") return;
@@ -679,6 +689,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._sensorCards = new Map();
     this._binarySensorCards = new Map();
     this._actuatorCards = new Map();
+    this._fanCards = new Map();
     this._groupContainers = new Map();
     this._dashboardConfig = DASHBOARD_CONFIG;
     this._deviceInfo = {};
@@ -791,12 +802,13 @@ class ESPHomeWebUI extends HTMLElement {
 
   _renderEntity(entity) {
     const presentation = getDashboardEntityConfig(entity, this._dashboardConfig);
-    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id);
+    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id) || this._fanCards.get(entity.id);
     if (!presentation.visible) {
       existing?.remove();
       this._sensorCards.delete(entity.id);
       this._binarySensorCards.delete(entity.id);
       this._actuatorCards.delete(entity.id);
+      this._fanCards.delete(entity.id);
       return;
     }
     const displayEntity = {...entity,name:presentation.label||entity.name,description:presentation.description};
@@ -805,6 +817,12 @@ class ESPHomeWebUI extends HTMLElement {
       this._upsertDashboardCard(displayEntity,this._sensorCards,group.grid,createSensorCard,updateSensorCard,presentation.order);
     } else if (entity.domain === "binary_sensor") {
       this._upsertDashboardCard(displayEntity,this._binarySensorCards,group.grid,createBinarySensorCard,updateBinarySensorCard,presentation.order);
+    } else if (entity.domain === "fan") {
+      const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
+      let card=this._fanCards.get(entity.id);
+      if(!card){card=createFanCard(displayEntity,onCommand);this._fanCards.set(entity.id,card);group.grid.append(card);}
+      else{updateFanCard(card,displayEntity);if(card.parentElement!==group.grid)group.grid.append(card);}
+      card.dataset.order=String(presentation.order);this._sortGroupCards(group.grid);
     } else if (["switch","button","light"].includes(entity.domain)) {
       const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
       const cards=this._actuatorCards;

@@ -15,6 +15,7 @@ const sourceFiles = [
   "web/src/switch-component.js",
   "web/src/button-component.js",
   "web/src/light-component.js",
+  "web/src/fan-component.js",
   "web/src/poc-app.js",
 ];
 const outputFile = path.join(root, "web/poc.js");

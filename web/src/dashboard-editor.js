@@ -4,7 +4,7 @@
   if(root)root.DashboardEditor=api.DashboardEditor;
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
-  const DOMAINS=["sensor","binary_sensor","switch","button","light"];
+  const DOMAINS=["sensor","binary_sensor","switch","button","light","fan"];
   const el=(tag,attrs={},text)=>{const node=document.createElement(tag);for(const [key,value] of Object.entries(attrs)){if(key==="class")node.className=value;else if(key==="checked")node.checked=value;else node.setAttribute(key,value);}if(text!==undefined)node.textContent=text;return node;};
   const cloneGroups=groups=>groups.map(group=>({...group,domains:[...group.domains]}));
   class DashboardEditor extends HTMLElement{

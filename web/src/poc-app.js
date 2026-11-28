@@ -46,6 +46,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._sensorCards = new Map();
     this._binarySensorCards = new Map();
     this._actuatorCards = new Map();
+    this._fanCards = new Map();
     this._groupContainers = new Map();
     this._dashboardConfig = DASHBOARD_CONFIG;
     this._deviceInfo = {};
@@ -158,12 +159,13 @@ class ESPHomeWebUI extends HTMLElement {
 
   _renderEntity(entity) {
     const presentation = getDashboardEntityConfig(entity, this._dashboardConfig);
-    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id);
+    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id) || this._fanCards.get(entity.id);
     if (!presentation.visible) {
       existing?.remove();
       this._sensorCards.delete(entity.id);
       this._binarySensorCards.delete(entity.id);
       this._actuatorCards.delete(entity.id);
+      this._fanCards.delete(entity.id);
       return;
     }
     const displayEntity = {...entity,name:presentation.label||entity.name,description:presentation.description};
@@ -172,6 +174,12 @@ class ESPHomeWebUI extends HTMLElement {
       this._upsertDashboardCard(displayEntity,this._sensorCards,group.grid,createSensorCard,updateSensorCard,presentation.order);
     } else if (entity.domain === "binary_sensor") {
       this._upsertDashboardCard(displayEntity,this._binarySensorCards,group.grid,createBinarySensorCard,updateBinarySensorCard,presentation.order);
+    } else if (entity.domain === "fan") {
+      const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
+      let card=this._fanCards.get(entity.id);
+      if(!card){card=createFanCard(displayEntity,onCommand);this._fanCards.set(entity.id,card);group.grid.append(card);}
+      else{updateFanCard(card,displayEntity);if(card.parentElement!==group.grid)group.grid.append(card);}
+      card.dataset.order=String(presentation.order);this._sortGroupCards(group.grid);
     } else if (["switch","button","light"].includes(entity.domain)) {
       const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
       const cards=this._actuatorCards;
