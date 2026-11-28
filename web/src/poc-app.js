@@ -17,7 +17,6 @@ class ESPHomeWebUI extends HTMLElement {
           </div>
         </header>
 
-        <dashboard-editor></dashboard-editor>
         <div id="dashboard-sections"></div>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
 
@@ -33,6 +32,7 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
+        <dashboard-editor></dashboard-editor>
         <footer>ESPHome Web UI · <span id="app-version">v__APP_VERSION__</span> · Sin servicios externos</footer>
       </main>
     `;
