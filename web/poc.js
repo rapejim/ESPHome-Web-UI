@@ -196,60 +196,197 @@
 });
 
 (function(root,factory){
+ const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;if(root)Object.assign(root,api);
+})(typeof globalThis!=="undefined"?globalThis:this,function(){
+ "use strict";
+ const DASHBOARD_CONFIG={deviceName:"",subtitle:"",showUnconfiguredEntities:true,groups:[
+  {id:"readings",title:"Estado ambiental",domains:["sensor"],layout:"sensors",order:10},
+  {id:"binary",title:"Sensores binarios",domains:["binary_sensor"],layout:"sensors",order:20},
+  {id:"controls",title:"Controles",domains:["switch","button","light"],layout:"controls",order:30}],entities:{}};
+ const clone=value=>JSON.parse(JSON.stringify(value));
+ function mergeDashboardConfig(base,saved){
+  if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
+  let groups=base.groups;
+  if(Array.isArray(saved.groups))groups=saved.groups.filter(g=>g&&typeof g.id==="string"&&(base.groups.some(x=>x.id===g.id)||(typeof g.title==="string"&&Array.isArray(g.domains))))
+   .map(g=>{const original=base.groups.find(x=>x.id===g.id);return {...(original||{}),...g,domains:Array.isArray(g.domains)?g.domains:[...(original?.domains||[])]};})
+   .filter(g=>typeof g.title==="string"&&Array.isArray(g.domains));
+  const entities=saved.entities&&typeof saved.entities==="object"&&!Array.isArray(saved.entities)?Object.fromEntries(Object.entries(saved.entities).filter(([,v])=>v&&typeof v==="object"&&!Array.isArray(v))):{};
+  return {...base,deviceName:typeof saved.deviceName==="string"?saved.deviceName:base.deviceName,subtitle:typeof saved.subtitle==="string"?saved.subtitle:base.subtitle,
+   showUnconfiguredEntities:typeof saved.showUnconfiguredEntities==="boolean"?saved.showUnconfiguredEntities:base.showUnconfiguredEntities,groups,entities:{...base.entities,...entities}};
+ }
+ function getDashboardEntityConfig(entity,config=DASHBOARD_CONFIG){
+  const custom=config.entities?.[entity.id]||{},compatible=config.groups.filter(g=>g.domains.includes(entity.domain));
+  const group=compatible.find(g=>g.id===custom.group)||compatible[0]||{id:"other",title:"Otras entidades",layout:["sensor","binary_sensor"].includes(entity.domain)?"sensors":"controls",order:1000};
+  return {visible:custom.visible===undefined?config.showUnconfiguredEntities!==false:custom.visible===true,label:custom.label||entity.name,description:custom.description||"",group,order:Number.isFinite(Number(custom.order))?Number(custom.order):1000};
+ }
+ function serializeDashboardConfig(config,entityList=[]){
+  const saved={};if(config.deviceName)saved.deviceName=config.deviceName;if(config.subtitle)saved.subtitle=config.subtitle;
+  if(config.showUnconfiguredEntities!==true)saved.showUnconfiguredEntities=config.showUnconfiguredEntities;
+  const defaults=new Map(DASHBOARD_CONFIG.groups.map(g=>[g.id,g]));
+  const groupDiff=config.groups.length!==DASHBOARD_CONFIG.groups.length||config.groups.some(g=>{const d=defaults.get(g.id);return !d||g.title!==d.title||JSON.stringify(g.domains)!==JSON.stringify(d.domains)||g.layout!==d.layout||g.order!==d.order;});
+  if(groupDiff)saved.groups=config.groups.map(g=>{const d=defaults.get(g.id);if(!d)return clone(g);const item={id:g.id};if(g.title!==d.title)item.title=g.title;if(JSON.stringify(g.domains)!==JSON.stringify(d.domains))item.domains=clone(g.domains);if(g.layout!==d.layout)item.layout=g.layout;if(g.order!==d.order)item.order=g.order;return item;});
+  const byId=new Map(entityList.map(e=>[e.id,e])),entities={};
+  for(const [id,c] of Object.entries(config.entities||{})){const e=byId.get(id),d={};
+   if(c.visible!==undefined&&c.visible!==(config.showUnconfiguredEntities!==false))d.visible=c.visible;
+   if(c.label&&(!e||c.label!==e.name))d.label=c.label;if(c.description)d.description=c.description;
+   if(c.group){const compatible=config.groups.filter(g=>e&&g.domains.includes(e.domain));if(!compatible[0]||c.group!==compatible[0].id)d.group=c.group;}
+   if(c.order!==undefined&&c.order!==1000)d.order=c.order;if(Object.keys(d).length)entities[id]=d;
+  }
+  if(Object.keys(entities).length)saved.entities=entities;return saved;
+ }
+ return {DASHBOARD_CONFIG,mergeDashboardConfig,getDashboardEntityConfig,serializeDashboardConfig};
+});
+
+(function(root,factory){
   const api=factory();
   if(typeof module==="object"&&module.exports)module.exports=api;
-  if(root)Object.assign(root,api);
+  if(root)root.DashboardEditor=api.DashboardEditor;
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
-
-  // Configuración predeterminada incluida en el firmware.
-  const DASHBOARD_CONFIG = {
-    deviceName: "",
-    subtitle: "",
-    showUnconfiguredEntities: true,
-    groups: [
-      {id:"readings",title:"Estado ambiental",domains:["sensor"],layout:"sensors",order:10},
-      {id:"binary",title:"Sensores binarios",domains:["binary_sensor"],layout:"sensors",order:20},
-      {id:"controls",title:"Controles",domains:["switch","button","light"],layout:"controls",order:30}
-    ],
-    entities: {}
-  };
-
-  function mergeDashboardConfig(base, saved){
-    if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
-    const groups=Array.isArray(saved.groups)?saved.groups.filter((group)=>
-      group&&typeof group.id==="string"&&typeof group.title==="string"&&
-      Array.isArray(group.domains)&&group.domains.every((domain)=>typeof domain==="string")
-    ):base.groups;
-    const entities=saved.entities&&typeof saved.entities==="object"&&!Array.isArray(saved.entities)
-      ?Object.fromEntries(Object.entries(saved.entities).filter(([,value])=>value&&typeof value==="object"&&!Array.isArray(value)))
-      :{};
-    return {
-      ...base,
-      deviceName:typeof saved.deviceName==="string"?saved.deviceName:base.deviceName,
-      subtitle:typeof saved.subtitle==="string"?saved.subtitle:base.subtitle,
-      showUnconfiguredEntities:typeof saved.showUnconfiguredEntities==="boolean"?saved.showUnconfiguredEntities:base.showUnconfiguredEntities,
-      groups,
-      entities:{...base.entities,...entities}
-    };
+  const DOMAINS=["sensor","binary_sensor","switch","button","light"];
+  const el=(tag,attrs={},text)=>{const node=document.createElement(tag);for(const [key,value] of Object.entries(attrs)){if(key==="class")node.className=value;else if(key==="checked")node.checked=value;else node.setAttribute(key,value);}if(text!==undefined)node.textContent=text;return node;};
+  const cloneGroups=groups=>groups.map(group=>({...group,domains:[...group.domains]}));
+  class DashboardEditor extends HTMLElement{
+    setData(config,entities,onSave){this.config=config;this.entities=entities;this.onSave=onSave;this.render();}
+    field(label,control){const wrapper=el("label",{class:"editor-field"});wrapper.append(el("span",{},label),control);return wrapper;}
+    render(){
+      if(!this.config||!this.entities)return;
+      const groups=cloneGroups(this.config.groups||[]);
+      const details=el("details",{class:"dashboard-editor"});
+      details.append(el("summary",{},"⚙ Configurar dashboard"));
+      const body=el("div",{class:"editor-body"});
+      body.append(el("p",{class:"editor-help"},"Los cambios se guardan en el dispositivo y se conservan tras reiniciarlo."));
+      const name=el("input",{type:"text",maxlength:"48",class:"editor-input",value:this.config.deviceName||""});
+      const subtitle=el("input",{type:"text",maxlength:"64",class:"editor-input",value:this.config.subtitle||""});
+      const show=el("input",{type:"checkbox",checked:this.config.showUnconfiguredEntities!==false});
+      body.append(this.field("Nombre del panel",name),this.field("Subtítulo",subtitle),this.field("Mostrar entidades nuevas automáticamente",show));
+      const groupSection=el("details",{class:"editor-subsection"});
+      groupSection.append(el("summary",{},"Grupos"));
+      const groupContent=el("div",{class:"editor-subsection-content"});
+      const groupList=el("div",{class:"editor-groups"});
+      const create=el("div",{class:"editor-group-create"});
+      const newName=el("input",{type:"text",maxlength:"24",class:"editor-input",placeholder:"Nombre del grupo"});
+      const domainChecks={};
+      const domainBox=el("div",{class:"editor-domain-options"});
+      DOMAINS.forEach(domain=>{const input=el("input",{type:"checkbox",checked:["sensor","binary_sensor"].includes(domain)});domainChecks[domain]=input;domainBox.append(this.field(domain,input));});
+      const add=el("button",{type:"button",class:"button secondary"},"Añadir grupo");
+      create.append(newName,domainBox,add);
+      groupContent.append(create,groupList);
+      groupSection.append(groupContent);
+      body.append(groupSection);
+      const entitySection=el("details",{class:"editor-subsection"});
+      entitySection.append(el("summary",{},"Entidades"));
+      const entityContent=el("div",{class:"editor-subsection-content"});
+      const list=el("div",{class:"editor-entities"}),rows=[];
+      this.entities.slice().sort((a,b)=>(a.name||a.id).localeCompare(b.name||b.id,"es")).forEach(entity=>{
+        const custom=this.config.entities[entity.id]||{};
+        const row=el("div",{class:"editor-entity"});
+        const visible=el("input",{type:"checkbox",checked:custom.visible===undefined?show.checked:custom.visible===true});
+        const copy=el("div",{class:"editor-entity-copy"});
+        copy.append(el("strong",{},entity.name||entity.id),el("small",{},entity.id));
+        const label=el("input",{type:"text",maxlength:"32",class:"editor-input",placeholder:"Etiqueta",value:custom.label||""});
+        const description=el("input",{type:"text",maxlength:"40",class:"editor-input",placeholder:"Descripción",value:custom.description||""});
+        const group=el("select",{class:"editor-input"});
+        const order=el("input",{type:"number",min:"0",max:"999",step:"1",class:"editor-order",value:custom.order===undefined?"":String(custom.order),placeholder:"Auto"});
+        row.append(this.field("Mostrar",visible),copy,this.field("Etiqueta",label),this.field("Descripción",description),this.field("Grupo",group),this.field("Orden",order));
+        list.append(row);rows.push({entity,visible,label,description,group,order});
+      });
+      entityContent.append(list);
+      entitySection.append(entityContent);
+      body.append(entitySection);
+      const footer=el("div",{class:"editor-footer"});
+      const size=el("span",{class:"editor-size"});
+      const save=el("button",{type:"button",class:"button primary"},"Guardar cambios");
+      const reset=el("button",{type:"button",class:"button secondary"},"Restablecer valores de fábrica");
+      const status=el("span",{class:"editor-status","aria-live":"polite"});
+      footer.append(size,save,reset,status);body.append(footer);details.append(body);
+      const compatibleGroups=entity=>groups.filter(g=>g.domains.includes(entity.domain));
+      const defaultGroup=entity=>compatibleGroups(entity)[0];
+      const refreshGroupOptions=()=>{
+        rows.forEach(row=>{
+          const previous=row.group.value||this.config.entities?.[row.entity.id]?.group;
+          row.group.replaceChildren();
+          const compatible=compatibleGroups(row.entity);
+          compatible.forEach(group=>row.group.append(el("option",{value:group.id},group.title)));
+          row.group.append(el("option",{value:"other"},"Otras entidades"));
+          const fallback=defaultGroup(row.entity);
+          row.group.value=compatible.some(g=>g.id===previous)?previous:(fallback?fallback.id:"other");
+        });
+      };
+      const buildConfig=()=>{
+        const entities={};
+        rows.forEach(row=>{
+          const custom={};
+          if(row.visible.checked!==show.checked)custom.visible=row.visible.checked;
+          const label=row.label.value.trim();if(label&&label!==row.entity.name)custom.label=label;
+          const description=row.description.value.trim();if(description)custom.description=description;
+          const fallback=defaultGroup(row.entity);
+          if(row.group.value!==(fallback?fallback.id:"other"))custom.group=row.group.value;
+          if(row.order.value.trim()!=="")custom.order=Math.max(0,Math.min(999,Number(row.order.value)||0));
+          if(Object.keys(custom).length)entities[row.entity.id]=custom;
+        });
+        return serializeDashboardConfig({deviceName:name.value.trim(),subtitle:subtitle.value.trim(),showUnconfiguredEntities:show.checked,groups:cloneGroups(groups),entities},this.entities);
+      };
+      const updateSize=()=>{
+        const bytes=new TextEncoder().encode(JSON.stringify(buildConfig())).length;
+        size.textContent="Configuración: "+bytes+"/768 bytes";
+        size.classList.toggle("over-limit",bytes>768);save.disabled=bytes>768;
+      };
+      const refreshGroups=()=>{
+        groupList.replaceChildren();
+        groups.forEach((group,index)=>{
+          const card=el("div",{class:"editor-group"});
+          const heading=el("div",{class:"editor-group-heading"});
+          heading.append(el("strong",{},group.title));
+          const groupOrder=el("input",{type:"number",min:"0",max:"999",step:"1",class:"editor-order",value:String(group.order??(index+1)*10),"aria-label":"Orden de "+group.title});
+          groupOrder.addEventListener("input",()=>{group.order=Math.max(0,Math.min(999,Number(groupOrder.value)||0));updateSize();});
+          const remove=el("button",{type:"button",class:"button danger"},"Eliminar");
+          remove.addEventListener("click",()=>{
+            const index=groups.findIndex(item=>item.id===group.id);if(index>=0)groups.splice(index,1);
+            rows.forEach(row=>{if(row.group.value===group.id){const fallback=defaultGroup(row.entity);row.group.value=fallback?fallback.id:"other";}});
+            refreshGroups();refreshGroupOptions();updateSize();
+          });
+          heading.append(this.field("Orden",groupOrder),remove);
+          const title=el("input",{type:"text",maxlength:"24",class:"editor-input",value:group.title});
+          title.addEventListener("input",()=>{group.title=title.value;heading.querySelector("strong").textContent=group.title;refreshGroupOptions();updateSize();});
+          const domains=el("div",{class:"editor-domain-options"});
+          DOMAINS.forEach(domain=>{
+            const input=el("input",{type:"checkbox",checked:group.domains.includes(domain)});
+            input.addEventListener("change",()=>{group.domains=input.checked?[...new Set([...group.domains,domain])]:group.domains.filter(item=>item!==domain);group.layout=group.domains.some(item=>["sensor","binary_sensor"].includes(item))?"sensors":"controls";refreshGroupOptions();updateSize();});
+            domains.append(this.field(domain,input));
+          });
+          card.append(heading,this.field("Nombre",title),this.field("Dominios",domains));groupList.append(card);
+        });
+      };
+      refreshGroups();refreshGroupOptions();
+      show.addEventListener("change",()=>{rows.forEach(row=>row.visible.checked=show.checked);updateSize();});
+      [name,subtitle,show,...rows.flatMap(row=>[row.visible,row.label,row.description,row.group,row.order])].forEach(input=>input.addEventListener("input",updateSize));
+      add.addEventListener("click",()=>{
+        const title=newName.value.trim();if(!title){status.textContent="Indica un nombre para el grupo.";return;}
+        const id=title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,18);
+        if(!id||groups.some(group=>group.id===id)){status.textContent="Nombre de grupo no válido o repetido.";return;}
+        const domains=DOMAINS.filter(domain=>domainChecks[domain].checked);
+        groups.push({id,title,domains,layout:domains.some(domain=>["sensor","binary_sensor"].includes(domain))?"sensors":"controls",order:(groups.length+1)*10});
+        newName.value="";refreshGroups();refreshGroupOptions();updateSize();
+      });
+      save.addEventListener("click",async()=>{
+        save.disabled=true;status.textContent="Guardando…";
+        try{await this.onSave(buildConfig());status.textContent="Guardado correctamente.";}
+        catch(error){status.textContent=error.message||"No se pudo guardar.";}
+        save.disabled=false;
+      });
+      reset.addEventListener("click",async()=>{
+        if(typeof globalThis.confirm==="function"&&!globalThis.confirm("Se perderán los cambios personalizados y se recuperará la configuración incluida en el firmware. ¿Continuar?"))return;
+        reset.disabled=true;save.disabled=true;status.textContent="Restableciendo…";
+        try{await this.onSave({});status.textContent="Configuración de fábrica restaurada.";}
+        catch(error){status.textContent=error.message||"No se pudo restablecer.";}
+        reset.disabled=false;save.disabled=false;
+      });
+      this.replaceChildren(details);updateSize();
+    }
   }
-
-  function getDashboardEntityConfig(entity, config=DASHBOARD_CONFIG){
-    const custom=config.entities?.[entity.id]||{};
-    const groupId=custom.group||config.groups.find((group)=>group.domains.includes(entity.domain))?.id||"other";
-    const group=config.groups.find((item)=>item.id===groupId)||{
-      id:"other",title:"Otras entidades",layout:["sensor","binary_sensor"].includes(entity.domain)?"sensors":"controls",order:1000
-    };
-    return {
-      visible:custom.visible===undefined?config.showUnconfiguredEntities!==false:custom.visible===true,
-      label:custom.label||entity.name,
-      description:custom.description||"",
-      group,
-      order:Number.isFinite(Number(custom.order))?Number(custom.order):1000
-    };
-  }
-
-  return {DASHBOARD_CONFIG,mergeDashboardConfig,getDashboardEntityConfig};
+  if(typeof customElements!=="undefined"&&!customElements.get("dashboard-editor"))customElements.define("dashboard-editor",DashboardEditor);
+  return {DashboardEditor};
 });
 
 (function(root,factory){const api=factory();if(typeof module==="object"&&module.exports)module.exports=api;if(root)Object.assign(root,api);})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
@@ -528,10 +665,12 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
-        <footer>ESPHome Web UI · <span id="app-version">v0.5.8</span> · Sin servicios externos</footer>
+        <dashboard-editor></dashboard-editor>
+        <footer>ESPHome Web UI · <span id="app-version">v0.6.8</span> · Sin servicios externos</footer>
       </main>
     `;
 
+    this._editor = this.querySelector("dashboard-editor");
     this._status = this.querySelector("#connection-status");
     this._feedback = this.querySelector("#feedback");
     this._logs = this.querySelector("#device-logs");
@@ -545,7 +684,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._deviceInfo = {};
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
-      if (type === "added" || type === "updated") this._renderEntity(entity);
+      if (type === "added" || type === "updated") { this._renderEntity(entity); if (type === "added") this._renderEditor(); }
     });
     this._bindControls();
     this._connectClient();
@@ -564,7 +703,14 @@ class ESPHomeWebUI extends HTMLElement {
     this._client.on("connection", ({ connected, label }) => this._setConnection(connected, label));
     this._client.on("state", (data) => this._registry.update(data));
     this._client.on("deviceConfig", (config) => {
-      this._deviceInfo = config;
+      // ESPHome may emit partial ping payloads. Keep the last non-empty
+      // metadata value instead of replacing it with a missing/empty field.
+      if (typeof config?.title === "string" && config.title.trim()) {
+        this._deviceInfo.title = config.title.trim();
+      }
+      if (typeof config?.comment === "string" && config.comment.trim()) {
+        this._deviceInfo.comment = config.comment.trim();
+      }
       this._renderDeviceHeader();
     });
     this._client.on("log", (message) => this._appendLog(message));
@@ -583,6 +729,7 @@ class ESPHomeWebUI extends HTMLElement {
       this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
       this._renderDeviceHeader();
       for (const entity of this._registry.getAll()) this._renderEntity(entity);
+      this._renderEditor();
       for (const [id, group] of this._groupContainers) {
         if (group.grid.children.length === 0) {
           group.section.remove();
@@ -594,10 +741,31 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
+  _renderEditor() {
+    if (!this._editor) return;
+    this._editor.setData(this._dashboardConfig, this._registry.getAll(), (config) => this._saveDashboardConfig(config));
+  }
+
+  async _saveDashboardConfig(config) {
+    const body = JSON.stringify(config);
+    const bytes = new TextEncoder().encode(body).length;
+    if (bytes > 768) throw new Error("La configuración supera el límite de 768 bytes.");
+    const response = await this._client.fetchImpl("/dashboard-config", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body
+    });
+    if (response.status !== 202 && response.status !== 204) throw new Error("Error HTTP " + response.status);
+    this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, config);
+    this._renderDeviceHeader();
+    for (const entity of this._registry.getAll()) this._renderEntity(entity);
+    this._removeEmptyGroups();
+    this._renderEditor();
+    this._showFeedback(response.status === 202 ? "Configuración guardada." : "La configuración ya estaba guardada.");
+  }
+
   _renderDeviceHeader() {
     const configuredName = this._dashboardConfig.deviceName.trim();
     const deviceName = configuredName || (typeof this._deviceInfo.title === "string" ? this._deviceInfo.title.trim() : "");
-    if (deviceName) this.querySelector("#device-title").textContent = deviceName;
+    this.querySelector("#device-title").textContent = deviceName || "Mi dispositivo";
     const subtitle = this._dashboardConfig.subtitle.trim() ||
       (typeof this._deviceInfo.comment === "string" ? this._deviceInfo.comment.trim() : "") ||
       "Panel de control independiente";
@@ -659,9 +827,24 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
+  _removeEmptyGroups() {
+    for (const [id, group] of this._groupContainers) {
+      if (group.grid.children.length === 0) {
+        group.section.remove();
+        this._groupContainers.delete(id);
+      }
+    }
+  }
+
   _getGroupContainer(groupConfig) {
     let container=this._groupContainers.get(groupConfig.id);
-    if(container)return container;
+    if(container) {
+      container.section.dataset.order=String(groupConfig.order);
+      container.section.querySelector("h2").textContent=groupConfig.title;
+      container.grid.className=groupConfig.layout==="sensors"?"sensor-grid":"actuators-grid";
+      this._sortDashboardGroups();
+      return container;
+    }
     const section=document.createElement("section");
     section.className="section dashboard-group";
     section.dataset.groupId=groupConfig.id;

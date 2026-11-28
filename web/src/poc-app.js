@@ -32,10 +32,12 @@ class ESPHomeWebUI extends HTMLElement {
             </div>
           </details>
         </section>
+        <dashboard-editor></dashboard-editor>
         <footer>ESPHome Web UI · <span id="app-version">v__APP_VERSION__</span> · Sin servicios externos</footer>
       </main>
     `;
 
+    this._editor = this.querySelector("dashboard-editor");
     this._status = this.querySelector("#connection-status");
     this._feedback = this.querySelector("#feedback");
     this._logs = this.querySelector("#device-logs");
@@ -49,7 +51,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._deviceInfo = {};
     this._registry = new ESPHomeEntityRegistry();
     this._registry.subscribe(({ type, entity }) => {
-      if (type === "added" || type === "updated") this._renderEntity(entity);
+      if (type === "added" || type === "updated") { this._renderEntity(entity); if (type === "added") this._renderEditor(); }
     });
     this._bindControls();
     this._connectClient();
@@ -68,7 +70,14 @@ class ESPHomeWebUI extends HTMLElement {
     this._client.on("connection", ({ connected, label }) => this._setConnection(connected, label));
     this._client.on("state", (data) => this._registry.update(data));
     this._client.on("deviceConfig", (config) => {
-      this._deviceInfo = config;
+      // ESPHome may emit partial ping payloads. Keep the last non-empty
+      // metadata value instead of replacing it with a missing/empty field.
+      if (typeof config?.title === "string" && config.title.trim()) {
+        this._deviceInfo.title = config.title.trim();
+      }
+      if (typeof config?.comment === "string" && config.comment.trim()) {
+        this._deviceInfo.comment = config.comment.trim();
+      }
       this._renderDeviceHeader();
     });
     this._client.on("log", (message) => this._appendLog(message));
@@ -87,6 +96,7 @@ class ESPHomeWebUI extends HTMLElement {
       this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, saved);
       this._renderDeviceHeader();
       for (const entity of this._registry.getAll()) this._renderEntity(entity);
+      this._renderEditor();
       for (const [id, group] of this._groupContainers) {
         if (group.grid.children.length === 0) {
           group.section.remove();
@@ -98,10 +108,31 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
+  _renderEditor() {
+    if (!this._editor) return;
+    this._editor.setData(this._dashboardConfig, this._registry.getAll(), (config) => this._saveDashboardConfig(config));
+  }
+
+  async _saveDashboardConfig(config) {
+    const body = JSON.stringify(config);
+    const bytes = new TextEncoder().encode(body).length;
+    if (bytes > 768) throw new Error("La configuración supera el límite de 768 bytes.");
+    const response = await this._client.fetchImpl("/dashboard-config", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body
+    });
+    if (response.status !== 202 && response.status !== 204) throw new Error("Error HTTP " + response.status);
+    this._dashboardConfig = mergeDashboardConfig(DASHBOARD_CONFIG, config);
+    this._renderDeviceHeader();
+    for (const entity of this._registry.getAll()) this._renderEntity(entity);
+    this._removeEmptyGroups();
+    this._renderEditor();
+    this._showFeedback(response.status === 202 ? "Configuración guardada." : "La configuración ya estaba guardada.");
+  }
+
   _renderDeviceHeader() {
     const configuredName = this._dashboardConfig.deviceName.trim();
     const deviceName = configuredName || (typeof this._deviceInfo.title === "string" ? this._deviceInfo.title.trim() : "");
-    if (deviceName) this.querySelector("#device-title").textContent = deviceName;
+    this.querySelector("#device-title").textContent = deviceName || "Mi dispositivo";
     const subtitle = this._dashboardConfig.subtitle.trim() ||
       (typeof this._deviceInfo.comment === "string" ? this._deviceInfo.comment.trim() : "") ||
       "Panel de control independiente";
@@ -163,9 +194,24 @@ class ESPHomeWebUI extends HTMLElement {
     }
   }
 
+  _removeEmptyGroups() {
+    for (const [id, group] of this._groupContainers) {
+      if (group.grid.children.length === 0) {
+        group.section.remove();
+        this._groupContainers.delete(id);
+      }
+    }
+  }
+
   _getGroupContainer(groupConfig) {
     let container=this._groupContainers.get(groupConfig.id);
-    if(container)return container;
+    if(container) {
+      container.section.dataset.order=String(groupConfig.order);
+      container.section.querySelector("h2").textContent=groupConfig.title;
+      container.grid.className=groupConfig.layout==="sensors"?"sensor-grid":"actuators-grid";
+      this._sortDashboardGroups();
+      return container;
+    }
     const section=document.createElement("section");
     section.className="section dashboard-group";
     section.dataset.groupId=groupConfig.id;

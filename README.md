@@ -25,7 +25,8 @@ La prueba de concepto está validada en hardware ESP32-C6 Mini. Se han comprobad
 - Fase 5: registro normalizado de entidades.
 - Fase 6: componentes genéricos para sensores y sensores binarios, con versión visible en la interfaz.
 - Fase 7: componentes genéricos para `switch`, `button` y `light`.
-- Fase 8 (en curso): configuración de dashboards, selección de entidades, grupos, etiquetas y orden visual.
+- Fase 8: configuración declarativa y persistencia de dashboards en NVS.
+- Fase 9 (en curso): editor visual del dashboard desde el navegador, sin recompilar ni reflashear.
 
 Consulta la [arquitectura propuesta](docs/arquitectura.md) para conocer las capas, decisiones y alcance de la siguiente implementación.
 
@@ -43,7 +44,7 @@ La interfaz muestra automáticamente las entidades `sensor`, `binary_sensor`, `s
 
 ## Configuración del dashboard
 
-La configuración inicial se realiza en `web/src/dashboard-config.js` y se incluye en el firmware al generar `web/poc.js`. Permite definir el nombre y subtítulo, grupos, orden de grupos, visibilidad de entidades, etiquetas, descripciones complementarias, grupo y orden de cada entidad. Para mostrar únicamente una selección explícita, establece `showUnconfiguredEntities: false` y marca con `visible: true` las entidades que quieras incluir. Los identificadores deben coincidir con `name_id` (con fallback a `id`). El nombre del dispositivo se obtiene del evento SSE inicial de ESPHome; `deviceName` permite sobrescribirlo.
+El dashboard incluye un editor visual accesible desde «Configurar dashboard». Permite cambiar el nombre y subtítulo, decidir si se muestran automáticamente las entidades nuevas, ajustar visibilidad, etiquetas, descripciones, grupos y orden, crear grupos con dominios seleccionados, renombrarlos, ordenarlos, eliminarlos y reasignar sus entidades. También permite restablecer los valores de fábrica guardando una configuración vacía (`{}`). Los cambios se guardan mediante `POST /dashboard-config` en las preferencias NVS del ESP32 y sobreviven a reinicios. El límite actual de almacenamiento es de 768 bytes; el editor muestra el tamaño antes de guardar. La configuración inicial del firmware sigue disponible en `web/src/dashboard-config.js`.
 
 ## Versionado
 

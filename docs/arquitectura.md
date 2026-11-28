@@ -105,7 +105,7 @@ La configuración personalizada se guarda como JSON acotado en las preferencias 
 ## Fuera del alcance inmediato
 
 - Soporte completo de todos los dominios ESPHome.
-- Editor visual de dashboards (siguiente fase).
+- Editor visual avanzado (por ejemplo, reorganización mediante arrastrar y soltar).
 - Integración con Home Assistant como backend.
 - Publicación de una primera versión estable y elección de licencia.
 

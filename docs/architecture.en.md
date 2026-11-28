@@ -105,7 +105,7 @@ Custom dashboard configuration is stored as bounded JSON in ESP32 preferences. T
 ## Out of immediate scope
 
 - Full support for every ESPHome domain.
-- Visual dashboard editor (next phase).
+- Advanced visual editing (for example, drag-and-drop rearrangement).
 - Home Assistant as a backend.
 - First stable release and license selection.
 

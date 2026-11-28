@@ -126,7 +126,16 @@ void DashboardStorage::handleRequest(AsyncWebServerRequest *request) {
     }
     this->save_pending_.store(false);
   });
+#ifdef USE_ESP32
+  // The ESP-IDF web server maps unknown status codes to HTTP 500.
+  // 202 is not in its built-in status table, so send this status explicitly.
+  static constexpr char ACCEPTED_BODY[] = R"({"status":"accepted"})";
+  httpd_resp_set_status(*request, "202 Accepted");
+  httpd_resp_set_type(*request, "application/json");
+  httpd_resp_send(*request, ACCEPTED_BODY, sizeof(ACCEPTED_BODY) - 1);
+#else
   request->send(202, "application/json", R"({"status":"accepted"})");
+#endif
 }
 
 void DashboardStorage::dump_config() {
