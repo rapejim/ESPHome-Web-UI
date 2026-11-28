@@ -685,7 +685,7 @@ class ESPHomeWebUI extends HTMLElement {
           </details>
         </section>
         <dashboard-editor></dashboard-editor>
-        <footer>ESPHome Web UI · <span id="app-version">v0.7.1</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.7.2</span> · Sin servicios externos</footer>
       </main>
     `;
 
