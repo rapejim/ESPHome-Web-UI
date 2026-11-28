@@ -202,7 +202,7 @@
  const DASHBOARD_CONFIG={deviceName:"",subtitle:"",showUnconfiguredEntities:true,groups:[
   {id:"readings",title:"Estado ambiental",domains:["sensor"],layout:"sensors",order:10},
   {id:"binary",title:"Sensores binarios",domains:["binary_sensor"],layout:"sensors",order:20},
-  {id:"controls",title:"Controles",domains:["switch","button","light"],layout:"controls",order:30}],entities:{}};
+  {id:"controls",title:"Controles",domains:["switch","button","light","fan"],layout:"controls",order:30}],entities:{}};
  const clone=value=>JSON.parse(JSON.stringify(value));
  function mergeDashboardConfig(base,saved){
   if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;
@@ -243,7 +243,7 @@
   if(root)root.DashboardEditor=api.DashboardEditor;
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
   "use strict";
-  const DOMAINS=["sensor","binary_sensor","switch","button","light"];
+  const DOMAINS=["sensor","binary_sensor","switch","button","light","fan"];
   const el=(tag,attrs={},text)=>{const node=document.createElement(tag);for(const [key,value] of Object.entries(attrs)){if(key==="class")node.className=value;else if(key==="checked")node.checked=value;else node.setAttribute(key,value);}if(text!==undefined)node.textContent=text;return node;};
   const cloneGroups=groups=>groups.map(group=>({...group,domains:[...group.domains]}));
   class DashboardEditor extends HTMLElement{
@@ -640,7 +640,6 @@ function createFanCard(e,send){const c=document.createElement("article");c.class
 function updateFanCard(c,e){const v=getFanPresentation(e);c.querySelector(".actuator-name").textContent=v.name;c.querySelector(".actuator-state").textContent=v.state;c.querySelector(".fan-on").disabled=v.isOn;c.querySelector(".fan-off").disabled=!v.isOn;const sc=c.querySelector(".fan-speed-control"),oc=c.querySelector(".fan-oscillation-control"),apply=c.querySelector(".fan-apply");sc.hidden=!v.supportsSpeed;oc.hidden=!v.supportsOscillation;apply.hidden=!v.supportsSpeed&&!v.supportsOscillation;apply.textContent=v.isOn?"Aplicar ajustes":"Encender y aplicar";const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");if(document.activeElement!==speed)speed.value=String(v.speedLevel||1);if(document.activeElement!==osc)osc.checked=v.oscillation;}
 return{isFanOn,getFanPresentation,buildFanCommandParams,createFanCard,updateFanCard};});
 
-
 class ESPHomeWebUI extends HTMLElement {
   connectedCallback() {
     if (this.dataset.initialized === "true") return;
@@ -676,7 +675,7 @@ class ESPHomeWebUI extends HTMLElement {
           </details>
         </section>
         <dashboard-editor></dashboard-editor>
-        <footer>ESPHome Web UI · <span id="app-version">v0.6.8</span> · Sin servicios externos</footer>
+        <footer>ESPHome Web UI · <span id="app-version">v0.7.0</span> · Sin servicios externos</footer>
       </main>
     `;
 
