@@ -382,11 +382,10 @@ footer {
   font-size: 0.72rem;
 }
 
-.logs-toolbar .button {
-  min-height: 34px;
-  padding: 0 12px;
-  font-size: 0.72rem;
-}
+.logs-actions { display:flex; align-items:center; gap:14px; }
+.logs-timestamp-toggle { display:inline-flex; align-items:center; gap:6px; color:#aab6c7; font-size:.72rem; white-space:nowrap; }
+.logs-timestamp-toggle input { width:16px; height:16px; margin:0; accent-color:#8bb8f4; }
+.logs-toolbar .button { min-height:34px; padding:0 12px; font-size:.72rem; }
 
 .device-logs {
   display: flex;
@@ -403,13 +402,10 @@ footer {
   overflow-wrap: anywhere;
 }
 
-.log-line {
-  padding: 3px 7px;
-  border-left: 2px solid #52647d;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.025);
-  white-space: pre-wrap;
-}
+.log-line { display:flex; align-items:baseline; gap:9px; padding:3px 7px; border-left:2px solid #52647d; border-radius:3px; background:rgba(255,255,255,.025); white-space:pre-wrap; }
+.log-timestamp { flex:0 0 auto; color:#8292a8; font-size:.92em; font-variant-numeric:tabular-nums; }
+.device-logs.timestamps-hidden .log-timestamp { display:none; }
+.log-message { min-width:0; }
 
 .log-line[data-level="E"] {
   border-left-color: #f87171;
@@ -463,7 +459,7 @@ footer {
 .light-color-control[hidden], .brightness-control[hidden], .light-apply[hidden] { display: none; }
 @media (min-width: 640px) {
   .actuators-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .actuator-card.light-card { grid-column: 1 / -1; }
+  .actuator-card.has-extra-controls { grid-column: 1 / -1; }
 }
 
 
@@ -516,4 +512,14 @@ footer {
 .editor-subsection-content { display: grid; gap: 10px; padding: 0 10px 12px; }
 .editor-subsection[open] > summary { border-bottom: 1px solid #29384d; margin-bottom: 10px; }
 
-.fan-card{padding:18px 20px}.fan-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.fan-heading h3{margin:0 0 5px}.fan-settings{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}.fan-speed-control{display:flex;align-items:center;gap:8px;color:#aab6c7;font-size:.8rem}.fan-speed{width:76px;min-height:36px;padding:6px 8px;border:1px solid #3b4a60;border-radius:8px;background:#172334;color:#eef2f8;font:inherit}.fan-oscillation-control{display:flex;align-items:center;gap:7px;color:#aab6c7;font-size:.8rem}.fan-oscillation-control input{width:17px;height:17px;accent-color:#8bb8f4}.fan-settings [hidden]{display:none!important}@media(max-width:520px){.fan-card{padding:16px}.fan-settings{align-items:flex-start}}
+.fan-icon{display:inline-block;transform-origin:center}
+.fan-icon.fan-running{animation:fan-spin 1.25s linear infinite}
+@keyframes fan-spin{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+@media(prefers-reduced-motion:reduce){.fan-icon.fan-running{animation:none}}
+.fan-card{padding:18px 20px}.fan-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.fan-heading h3{margin:0 0 5px}.fan-settings{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}.fan-speed-control{display:flex;align-items:center;gap:8px;color:#aab6c7;font-size:.8rem}.fan-speed{width:min(220px,42vw);min-width:110px;height:24px;margin:0;padding:0;border:0;border-radius:0;background:transparent;appearance:none;-webkit-appearance:none;cursor:pointer;touch-action:pan-y}
+.fan-speed::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(to right,#8bb8f4 0%,#8bb8f4 var(--range-progress,0%),#3b4a60 var(--range-progress,0%),#3b4a60 100%)}
+.fan-speed::-moz-range-track{height:6px;border-radius:999px;background:#3b4a60}
+.fan-speed::-moz-range-progress{height:6px;border-radius:999px;background:#8bb8f4}
+.fan-speed::-webkit-slider-thumb{width:16px;height:16px;margin-top:-5px;border:2px solid #dceaff;border-radius:50%;background:#8bb8f4;appearance:none;-webkit-appearance:none;box-shadow:0 1px 5px #0008}
+.fan-speed::-moz-range-thumb{width:12px;height:12px;border:2px solid #dceaff;border-radius:50%;background:#8bb8f4;box-shadow:0 1px 5px #0008}
+.fan-speed:focus-visible{outline:2px solid #8bb8f4;outline-offset:4px}.fan-oscillation-control{display:flex;align-items:center;gap:7px;color:#aab6c7;font-size:.8rem}.fan-oscillation-control input{width:17px;height:17px;accent-color:#8bb8f4}.fan-settings [hidden]{display:none!important}@media(max-width:520px){.fan-card{padding:16px}.fan-settings{align-items:flex-start}}

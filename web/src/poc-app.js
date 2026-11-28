@@ -25,7 +25,10 @@ class ESPHomeWebUI extends HTMLElement {
             <summary><span>Registro del dispositivo</span><span id="log-count" class="log-count">0</span></summary>
             <div class="logs-toolbar">
               <span id="log-status" class="logs-status">Esperando mensajes…</span>
-              <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+              <div class="logs-actions">
+                <label class="logs-timestamp-toggle"><input id="logs-show-timestamps" type="checkbox" checked> Fecha y hora</label>
+                <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+              </div>
             </div>
             <div id="device-logs" class="device-logs" role="log" aria-live="off" aria-relevant="additions">
               <p class="logs-empty">Los mensajes del dispositivo aparecerán aquí.</p>
@@ -59,6 +62,9 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _bindControls() {
+    this.querySelector("#logs-show-timestamps").addEventListener("change", (event) => {
+      this._logs.classList.toggle("timestamps-hidden", !event.currentTarget.checked);
+    });
     this.querySelector("#logs-clear").addEventListener("click", () => {
       this._logs.replaceChildren();
       this._logCount.textContent = "0";
@@ -147,7 +153,18 @@ class ESPHomeWebUI extends HTMLElement {
     const cleanMessage = String(message).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
     const line = document.createElement("div");
     line.className = "log-line";
-    line.textContent = cleanMessage;
+    const receivedAt = new Date();
+    const timestamp = document.createElement("time");
+    timestamp.className = "log-timestamp";
+    timestamp.dateTime = receivedAt.toISOString();
+    timestamp.textContent = receivedAt.toLocaleString("es-ES", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    });
+    const text = document.createElement("span");
+    text.className = "log-message";
+    text.textContent = cleanMessage;
+    line.append(timestamp, text);
     const level = cleanMessage.match(/\[([EWIDV])\]/)?.[1] || "";
     if (level) line.dataset.level = level;
     this._logs.append(line);

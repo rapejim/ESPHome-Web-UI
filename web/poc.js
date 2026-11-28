@@ -636,19 +636,21 @@ return{getBinarySensorPresentation,createBinarySensorCard,updateBinarySensorCard
 "use strict";
 function isFanOn(s){return s===true||s===1||s==="ON"||s==="on"||s==="true";}
 function getFanPresentation(e){const a=e.attributes||{},speed=Number(a.speed_level),count=Number(a.speed_count),ss=Number.isFinite(speed)&&Number.isFinite(count)&&count>=1,so=Object.prototype.hasOwnProperty.call(a,"oscillation");return{name:e.name||e.objectId||"Ventilador",isOn:isFanOn(e.state),state:isFanOn(e.state)?"Encendido":"Apagado",speedLevel:ss?Math.max(1,Math.min(count,Math.floor(speed)||1)):1,speedCount:ss?Math.floor(count):1,supportsSpeed:ss,oscillation:a.oscillation===true||a.oscillation===1||a.oscillation==="ON"||a.oscillation==="on"||a.oscillation==="true",supportsOscillation:so};}
+function getFanSpeedProgress(value,min=1,max=1){const low=Number(min),high=Number(max),current=Number(value);if(!Number.isFinite(low)||!Number.isFinite(high)||!Number.isFinite(current)||high<=low)return 100;return Math.max(0,Math.min(100,(current-low)/(high-low)*100));}
 function buildFanCommandParams(o){const p=new URLSearchParams();if(o.supportsSpeed){const max=Math.max(1,Math.floor(Number(o.speedCount)||1)),n=Math.floor(Number(o.speedLevel));if(Number.isFinite(n))p.set("speed_level",String(Math.max(1,Math.min(max,n))));}if(o.supportsOscillation)p.set("oscillation",o.oscillation?"ON":"OFF");return p;}
-function createFanCard(e,send){const c=document.createElement("article");c.className="card actuator-card fan-card";c.dataset.entityId=e.id;c.innerHTML='<div class="fan-heading"><div><h3 class="actuator-name"></h3><span class="actuator-state"></span></div><span class="control-icon fan-icon" aria-hidden="true">🌀</span></div><div class="fan-settings"><label class="fan-speed-control">Velocidad <input class="fan-speed" type="range" min="1" max="1" step="1" value="1"><output class="fan-speed-value">1</output></label><label class="fan-oscillation-control"><input class="fan-oscillation" type="checkbox"> Oscilación</label></div><div class="actuator-actions"><button class="button primary fan-on" type="button">Encender</button><button class="button secondary fan-off" type="button">Apagar</button></div>';
+function createFanCard(e,send){const c=document.createElement("article");c.className="card actuator-card fan-card";c.dataset.entityId=e.id;c.innerHTML='<div class="fan-heading"><div><h3 class="actuator-name"></h3><span class="actuator-state"></span></div><span class="control-icon fan-icon" aria-hidden="true">🌀</span></div><div class="fan-settings"><label class="fan-speed-control">Velocidad <input class="fan-speed" type="range" min="1" max="1" step="1" value="1" aria-label="Velocidad del ventilador"><output class="fan-speed-value">1</output></label><label class="fan-oscillation-control"><input class="fan-oscillation" type="checkbox"> Oscilación</label></div><div class="actuator-actions"><button class="button primary fan-on" type="button">Encender</button><button class="button secondary fan-off" type="button">Apagar</button></div>';
 const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");
+const updateSpeedPresentation=()=>{c.querySelector(".fan-speed-value").textContent=speed.value;speed.style.setProperty("--range-progress",getFanSpeedProgress(speed.value,speed.min,speed.max)+"%");};
 const sendSettings=async()=>{if(c._fanTimer)clearTimeout(c._fanTimer);c._fanTimer=null;if(!c._fanDirty)return;c._fanDirty=false;const params=buildFanCommandParams({speedLevel:speed.value,speedCount:Number(speed.max),oscillation:osc.checked,supportsSpeed:!c.querySelector(".fan-speed-control").hidden,supportsOscillation:!c.querySelector(".fan-oscillation-control").hidden});if(params.toString()){c._fanDraft={speedLevel:Number(speed.value),oscillation:osc.checked,expiresAt:Date.now()+3000};if(c._fanDraftTimer)clearTimeout(c._fanDraftTimer);c._fanDraftTimer=setTimeout(()=>{c._fanDraft=null;if(c._lastEntity)updateFanCard(c,c._lastEntity);},3100);await send(e.id,"turn_on",params);}};
 const schedule=()=>{c._fanDirty=true;if(c._fanTimer)clearTimeout(c._fanTimer);c._fanTimer=setTimeout(sendSettings,100);};
-speed.addEventListener("input",()=>{c.querySelector(".fan-speed-value").textContent=speed.value;});
+speed.addEventListener("input",updateSpeedPresentation);
 speed.addEventListener("change",schedule);
 osc.addEventListener("change",schedule);
 c.querySelector(".fan-on").addEventListener("click",()=>send(e.id,"turn_on"));
 c.querySelector(".fan-off").addEventListener("click",()=>send(e.id,"turn_off"));
 updateFanCard(c,e);return c;}
-function updateFanCard(c,e){c._lastEntity=e;const v=getFanPresentation(e);c.querySelector(".actuator-name").textContent=v.name;c.querySelector(".actuator-state").textContent=v.state;c.querySelector(".fan-on").disabled=v.isOn;c.querySelector(".fan-off").disabled=!v.isOn;c.querySelector(".fan-icon").classList.toggle("fan-running",v.isOn);const sc=c.querySelector(".fan-speed-control"),oc=c.querySelector(".fan-oscillation-control");sc.hidden=!v.supportsSpeed;oc.hidden=!v.supportsOscillation;c.classList.toggle("has-extra-controls",v.supportsSpeed||v.supportsOscillation);const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");speed.max=String(v.speedCount);let draft=c._fanDraft;if(draft&&Date.now()>=draft.expiresAt){c._fanDraft=null;draft=null;}if(draft){speed.value=String(Math.min(v.speedCount,draft.speedLevel));osc.checked=draft.oscillation;}else{if(document.activeElement!==speed)speed.value=String(v.speedLevel);if(document.activeElement!==osc)osc.checked=v.oscillation;}c.querySelector(".fan-speed-value").textContent=speed.value;}
-return{isFanOn,getFanPresentation,buildFanCommandParams,createFanCard,updateFanCard};});
+function updateFanCard(c,e){c._lastEntity=e;const v=getFanPresentation(e);c.querySelector(".actuator-name").textContent=v.name;c.querySelector(".actuator-state").textContent=v.state;c.querySelector(".fan-on").disabled=v.isOn;c.querySelector(".fan-off").disabled=!v.isOn;c.querySelector(".fan-icon").classList.toggle("fan-running",v.isOn);const sc=c.querySelector(".fan-speed-control"),oc=c.querySelector(".fan-oscillation-control");sc.hidden=!v.supportsSpeed;oc.hidden=!v.supportsOscillation;c.classList.toggle("has-extra-controls",v.supportsSpeed||v.supportsOscillation);const speed=c.querySelector(".fan-speed"),osc=c.querySelector(".fan-oscillation");speed.max=String(v.speedCount);let draft=c._fanDraft;if(draft&&Date.now()>=draft.expiresAt){c._fanDraft=null;draft=null;}if(draft){speed.value=String(Math.min(v.speedCount,draft.speedLevel));osc.checked=draft.oscillation;}else{if(document.activeElement!==speed)speed.value=String(v.speedLevel);if(document.activeElement!==osc)osc.checked=v.oscillation;}updateSpeedPresentation();}
+return{isFanOn,getFanPresentation,getFanSpeedProgress,buildFanCommandParams,createFanCard,updateFanCard};});
 
 class ESPHomeWebUI extends HTMLElement {
   connectedCallback() {
@@ -677,7 +679,10 @@ class ESPHomeWebUI extends HTMLElement {
             <summary><span>Registro del dispositivo</span><span id="log-count" class="log-count">0</span></summary>
             <div class="logs-toolbar">
               <span id="log-status" class="logs-status">Esperando mensajes…</span>
-              <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+              <div class="logs-actions">
+                <label class="logs-timestamp-toggle"><input id="logs-show-timestamps" type="checkbox" checked> Fecha y hora</label>
+                <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+              </div>
             </div>
             <div id="device-logs" class="device-logs" role="log" aria-live="off" aria-relevant="additions">
               <p class="logs-empty">Los mensajes del dispositivo aparecerán aquí.</p>
@@ -711,6 +716,9 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _bindControls() {
+    this.querySelector("#logs-show-timestamps").addEventListener("change", (event) => {
+      this._logs.classList.toggle("timestamps-hidden", !event.currentTarget.checked);
+    });
     this.querySelector("#logs-clear").addEventListener("click", () => {
       this._logs.replaceChildren();
       this._logCount.textContent = "0";
@@ -799,7 +807,18 @@ class ESPHomeWebUI extends HTMLElement {
     const cleanMessage = String(message).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
     const line = document.createElement("div");
     line.className = "log-line";
-    line.textContent = cleanMessage;
+    const receivedAt = new Date();
+    const timestamp = document.createElement("time");
+    timestamp.className = "log-timestamp";
+    timestamp.dateTime = receivedAt.toISOString();
+    timestamp.textContent = receivedAt.toLocaleString("es-ES", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    });
+    const text = document.createElement("span");
+    text.className = "log-message";
+    text.textContent = cleanMessage;
+    line.append(timestamp, text);
     const level = cleanMessage.match(/\[([EWIDV])\]/)?.[1] || "";
     if (level) line.dataset.level = level;
     this._logs.append(line);

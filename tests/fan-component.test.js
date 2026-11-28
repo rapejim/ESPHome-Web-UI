@@ -1,8 +1,11 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
-const {isFanOn,getFanPresentation,buildFanCommandParams}=require("../web/src/fan-component.js");
+const {isFanOn,getFanPresentation,getFanSpeedProgress,buildFanCommandParams}=require("../web/src/fan-component.js");
 test("fan presentation normalizes on/off states and keeps its name",()=>{assert.equal(isFanOn("ON"),true);assert.equal(isFanOn("OFF"),false);assert.equal(getFanPresentation({name:"Ventilador salón",state:"ON"}).name,"Ventilador salón");assert.equal(getFanPresentation({state:"OFF"}).state,"Apagado");});
 test("fan detects speed count and clamps the reported speed",()=>{const v=getFanPresentation({state:"ON",attributes:{speed_level:5,speed_count:3,oscillation:true}});assert.equal(v.isOn,true);assert.equal(v.supportsSpeed,true);assert.equal(v.speedLevel,3);assert.equal(v.speedCount,3);assert.equal(v.supportsOscillation,true);assert.equal(v.oscillation,true);});
 test("fan without optional attributes remains a simple on/off control",()=>{const v=getFanPresentation({state:"OFF",attributes:{}});assert.equal(v.supportsSpeed,false);assert.equal(v.supportsOscillation,false);});
 test("fan commands include supported settings and clamp speed to speed_count",()=>{const p=buildFanCommandParams({supportsSpeed:true,speedLevel:99,speedCount:3,supportsOscillation:true,oscillation:true});assert.equal(p.get("speed_level"),"3");assert.equal(p.get("oscillation"),"ON");assert.equal(buildFanCommandParams({supportsSpeed:false,supportsOscillation:false}).toString(),"");});
 test("fan speed command rejects invalid values and clamps to minimum",()=>{assert.equal(buildFanCommandParams({supportsSpeed:true,speedLevel:0,speedCount:3}).get("speed_level"),"1");assert.equal(buildFanCommandParams({supportsSpeed:true,speedLevel:"abc",speedCount:3}).has("speed_level"),false);});
+
+test("fan slider fill reaches both endpoints and scales intermediate speeds",()=>{assert.equal(getFanSpeedProgress(1,1,3),0);assert.equal(getFanSpeedProgress(2,1,3),50);assert.equal(getFanSpeedProgress(3,1,3),100);});
+test("fan slider progress clamps out-of-range values and handles a single speed",()=>{assert.equal(getFanSpeedProgress(9,1,3),100);assert.equal(getFanSpeedProgress(0,1,3),0);assert.equal(getFanSpeedProgress(1,1,1),100);});
