@@ -508,3 +508,10 @@ footer {
 .editor-group-heading .editor-field{display:flex;align-items:center;gap:6px}
 .editor-group-heading .button{min-height:32px;padding:0 10px;font-size:.7rem}
 .button.danger{border:1px solid #75404a;background:#482b35;color:#ffd5dc}
+
+
+.dashboard-editor { margin: 28px 0 18px; }
+.editor-subsection { border: 1px solid #2b394c; border-radius: 10px; background: rgba(26,38,55,.55); }
+.editor-subsection > summary { padding: 11px 12px; color: #dce6f5; font-size: .82rem; font-weight: 650; cursor: pointer; }
+.editor-subsection-content { display: grid; gap: 10px; padding: 0 10px 12px; }
+.editor-subsection[open] > summary { border-bottom: 1px solid #29384d; margin-bottom: 10px; }
