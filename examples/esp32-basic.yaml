@@ -67,6 +67,13 @@ switch:
     turn_off_action:
       - logger.log: "Demo switch turned off"
 
+fan:
+  - platform: template
+    name: "Ventilador demo"
+    id: demo_fan
+    has_oscillating: true
+    speed_count: 3
+
 output:
   - platform: template
     id: demo_red

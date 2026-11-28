@@ -5,7 +5,7 @@
  const DASHBOARD_CONFIG={deviceName:"",subtitle:"",showUnconfiguredEntities:true,groups:[
   {id:"readings",title:"Estado ambiental",domains:["sensor"],layout:"sensors",order:10},
   {id:"binary",title:"Sensores binarios",domains:["binary_sensor"],layout:"sensors",order:20},
-  {id:"controls",title:"Controles",domains:["switch","button","light"],layout:"controls",order:30}],entities:{}};
+  {id:"controls",title:"Controles",domains:["switch","button","light","fan"],layout:"controls",order:30}],entities:{}};
  const clone=value=>JSON.parse(JSON.stringify(value));
  function mergeDashboardConfig(base,saved){
   if(!saved||typeof saved!=="object"||Array.isArray(saved))return base;

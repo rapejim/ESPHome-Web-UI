@@ -25,7 +25,10 @@ class ESPHomeWebUI extends HTMLElement {
             <summary><span>Registro del dispositivo</span><span id="log-count" class="log-count">0</span></summary>
             <div class="logs-toolbar">
               <span id="log-status" class="logs-status">Esperando mensajes…</span>
-              <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+              <div class="logs-actions">
+                <label class="logs-timestamp-toggle"><input id="logs-show-timestamps" type="checkbox" checked> Fecha y hora</label>
+                <button id="logs-clear" class="button secondary" type="button">Limpiar</button>
+              </div>
             </div>
             <div id="device-logs" class="device-logs" role="log" aria-live="off" aria-relevant="additions">
               <p class="logs-empty">Los mensajes del dispositivo aparecerán aquí.</p>
@@ -46,6 +49,7 @@ class ESPHomeWebUI extends HTMLElement {
     this._sensorCards = new Map();
     this._binarySensorCards = new Map();
     this._actuatorCards = new Map();
+    this._fanCards = new Map();
     this._groupContainers = new Map();
     this._dashboardConfig = DASHBOARD_CONFIG;
     this._deviceInfo = {};
@@ -58,6 +62,9 @@ class ESPHomeWebUI extends HTMLElement {
   }
 
   _bindControls() {
+    this.querySelector("#logs-show-timestamps").addEventListener("change", (event) => {
+      this._logs.classList.toggle("timestamps-hidden", !event.currentTarget.checked);
+    });
     this.querySelector("#logs-clear").addEventListener("click", () => {
       this._logs.replaceChildren();
       this._logCount.textContent = "0";
@@ -146,7 +153,18 @@ class ESPHomeWebUI extends HTMLElement {
     const cleanMessage = String(message).replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
     const line = document.createElement("div");
     line.className = "log-line";
-    line.textContent = cleanMessage;
+    const receivedAt = new Date();
+    const timestamp = document.createElement("time");
+    timestamp.className = "log-timestamp";
+    timestamp.dateTime = receivedAt.toISOString();
+    timestamp.textContent = receivedAt.toLocaleString("es-ES", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    });
+    const text = document.createElement("span");
+    text.className = "log-message";
+    text.textContent = cleanMessage;
+    line.append(timestamp, text);
     const level = cleanMessage.match(/\[([EWIDV])\]/)?.[1] || "";
     if (level) line.dataset.level = level;
     this._logs.append(line);
@@ -158,12 +176,13 @@ class ESPHomeWebUI extends HTMLElement {
 
   _renderEntity(entity) {
     const presentation = getDashboardEntityConfig(entity, this._dashboardConfig);
-    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id);
+    const existing = this._sensorCards.get(entity.id) || this._binarySensorCards.get(entity.id) || this._actuatorCards.get(entity.id) || this._fanCards.get(entity.id);
     if (!presentation.visible) {
       existing?.remove();
       this._sensorCards.delete(entity.id);
       this._binarySensorCards.delete(entity.id);
       this._actuatorCards.delete(entity.id);
+      this._fanCards.delete(entity.id);
       return;
     }
     const displayEntity = {...entity,name:presentation.label||entity.name,description:presentation.description};
@@ -172,6 +191,12 @@ class ESPHomeWebUI extends HTMLElement {
       this._upsertDashboardCard(displayEntity,this._sensorCards,group.grid,createSensorCard,updateSensorCard,presentation.order);
     } else if (entity.domain === "binary_sensor") {
       this._upsertDashboardCard(displayEntity,this._binarySensorCards,group.grid,createBinarySensorCard,updateBinarySensorCard,presentation.order);
+    } else if (entity.domain === "fan") {
+      const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
+      let card=this._fanCards.get(entity.id);
+      if(!card){card=createFanCard(displayEntity,onCommand);this._fanCards.set(entity.id,card);group.grid.append(card);}
+      else{updateFanCard(card,displayEntity);if(card.parentElement!==group.grid)group.grid.append(card);}
+      card.dataset.order=String(presentation.order);this._sortGroupCards(group.grid);
     } else if (["switch","button","light"].includes(entity.domain)) {
       const onCommand=(entityId,action,params)=>this._sendEntity(entityId,action,params);
       const cards=this._actuatorCards;
